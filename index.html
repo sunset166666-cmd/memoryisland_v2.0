@@ -225,9 +225,16 @@ for(let i=0;i<9;i++){const c={a:rnd()*TAU,r:200+rnd()*80,y:70+rnd()*40,sp:.004+r
  for(let k=0;k<3;k++){const q=new THREE.Sprite(cloudM);q.scale.set(c.w*(1.8-.4*(k%2)),c.w*.7,1);scene.add(q);c.p.push(q)}clouds.push(c)}
 
 
+
 // ============================================================
-// PLAYER'S COTTAGE : V3.0 ISLAND PRIVATE VILLA
-// 海岛私人别墅版
+// PLAYER'S COTTAGE — V3 ISLAND VILLA
+// 独立别墅系统
+// 原则：不接管主世界玩家移动系统
+// ============================================================
+
+
+// ============================================================
+// 1. 基础参数
 // ============================================================
 
 const cottage = new THREE.Group();
@@ -236,1277 +243,1696 @@ const COTTAGE_X = -5.2;
 const COTTAGE_Z = 8.2;
 const COTTAGE_Y = H(COTTAGE_X, COTTAGE_Z);
 
-cottage.position.set(COTTAGE_X, COTTAGE_Y, COTTAGE_Z);
+cottage.position.set(
+  COTTAGE_X,
+  COTTAGE_Y,
+  COTTAGE_Z
+);
+
 cottage.rotation.y = -0.22;
-cottage.scale.set(1.72, 1, 1.72);
+cottage.scale.set(1.65,1,1.65);
 
 
 // ============================================================
-// 1. 基础工具
+// 2. 工具
 // ============================================================
 
-function villaMat(color, options = {}) {
-  return new THREE.MeshStandardMaterial(Object.assign({
-    color: color,
-    roughness: .82
-  }, options));
+function cottageMat(color, options={}){
+  return new THREE.MeshStandardMaterial(
+    Object.assign({
+      color:color,
+      roughness:.82
+    },options)
+  );
 }
 
-function villaMesh(geometry, material, x, y, z, parent) {
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+function cottagePart(
+  geometry,
+  material,
+  x,
+  y,
+  z,
+  parent=cottage
+){
+  const mesh=new THREE.Mesh(
+    geometry,
+    material
+  );
+
+  mesh.position.set(x,y,z);
+  mesh.castShadow=true;
+  mesh.receiveShadow=true;
+
   parent.add(mesh);
+
   return mesh;
 }
 
-function villaBox(w, h, d, x, y, z, color, parent, options = {}) {
-  return villaMesh(
-    new THREE.BoxGeometry(w, h, d),
-    villaMat(color, options),
-    x, y, z,
-    parent
-  );
-}
 
-function villaCylinder(rt, rb, h, x, y, z, color, parent, options = {}) {
-  return villaMesh(
-    new THREE.CylinderGeometry(rt, rb, h, 12),
-    villaMat(color, options),
-    x, y, z,
-    parent
-  );
+// ============================================================
+// 3. 碰撞
+//
+// V3 特意不让 Cottage 接管主世界移动。
+// 这样不会再出现出生点卡墙 / 完全无法移动。
+// ============================================================
+
+function inCot(x,z){
+  return false;
 }
 
 
 // ============================================================
-// 2. 分组结构
+// 4. 外部建筑
 // ============================================================
 
-const villaExterior = new THREE.Group();
-const villaInterior = new THREE.Group();
 
-const villaFloor1 = new THREE.Group();
-const villaFloor2 = new THREE.Group();
+// ---------- 地台 ----------
 
-const villaLights = new THREE.Group();
-
-villaInterior.add(villaFloor1);
-villaInterior.add(villaFloor2);
-
-cottage.add(villaExterior);
-cottage.add(villaInterior);
-cottage.add(villaLights);
-
-villaFloor2.visible = false;
-villaInterior.visible = false;
-
-
-// ============================================================
-// 3. 建筑材质
-// ============================================================
-
-const villaWallMat = villaMat(0xead8bd);
-const villaWallLightMat = villaMat(0xf5e8d2);
-const villaWoodMat = villaMat(0x8b6049);
-const villaDarkWoodMat = villaMat(0x634638);
-
-const villaRoofMat = villaMat(0x655064);
-
-const villaGlassMat = new THREE.MeshPhysicalMaterial({
-  color: 0xbfeaf4,
-  transparent: true,
-  opacity: .24,
-  roughness: .08,
-  metalness: .05,
-  transmission: .45,
-  thickness: .06,
-  side: THREE.DoubleSide,
-  depthWrite: false
-});
-
-
-// ============================================================
-// 4. 别墅地基
-// ============================================================
-
-villaBox(
-  6.6, .28, 5.55,
-  0, .14, 0,
-  0x795541,
-  villaExterior
+cottagePart(
+  new THREE.BoxGeometry(6.1,.24,5.15),
+  cottageMat(0x805840),
+  0,.12,0
 );
 
-villaBox(
-  6.15, .18, 5.1,
-  0, .36, 0,
-  0xc99665,
-  villaExterior
-);
-
-// 前方台阶平台
-villaBox(
-  3.1, .18, 1.35,
-  0, .47, -2.72,
-  0xb47b55,
-  villaExterior
-);
-
-villaBox(
-  2.4, .16, .7,
-  0, .61, -3.35,
-  0x9a684c,
-  villaExterior
+cottagePart(
+  new THREE.BoxGeometry(5.65,.16,4.7),
+  cottageMat(0xc99662),
+  0,.31,0
 );
 
 
-// ============================================================
-// 5. 一楼建筑主体
-// ============================================================
+// ---------- 外墙 ----------
+
+const villaWall=cottageMat(
+  0xe8d3b4
+);
+
+
+// 一楼前墙：左右两块，中间留门
+
+cottagePart(
+  new THREE.BoxGeometry(1.75,2.65,.20),
+  villaWall,
+  -1.62,1.65,-2.12
+);
+
+cottagePart(
+  new THREE.BoxGeometry(1.75,2.65,.20),
+  villaWall,
+  1.62,1.65,-2.12
+);
+
 
 // 后墙
-villaBox(
-  5.7, 2.75, .18,
-  0, 1.72, 2.35,
-  0xe7d2b0,
-  villaExterior
-);
 
-// 左墙
-villaBox(
-  .18, 2.75, 4.55,
-  -2.85, 1.72, .1,
-  0xe7d2b0,
-  villaExterior
-);
-
-// 右墙
-villaBox(
-  .18, 2.75, 4.55,
-  2.85, 1.72, .1,
-  0xe7d2b0,
-  villaExterior
+cottagePart(
+  new THREE.BoxGeometry(5.2,2.65,.20),
+  villaWall,
+  0,1.65,2.12
 );
 
 
-// ============================================================
-// 6. 正面：大面积落地窗 + 门
-// ============================================================
+// 左右墙
 
-// 左侧实体柱
-villaBox(
-  .35, 2.75, .2,
-  -2.65, 1.72, -2.3,
-  0xd6bd9d,
-  villaExterior
+cottagePart(
+  new THREE.BoxGeometry(.20,2.65,4.1),
+  villaWall,
+  -2.52,1.65,0
 );
 
-// 门左柱
-villaBox(
-  .28, 2.75, .2,
-  -.75, 1.72, -2.3,
-  0xd6bd9d,
-  villaExterior
-);
-
-// 门右柱
-villaBox(
-  .28, 2.75, .2,
-  .75, 1.72, -2.3,
-  0xd6bd9d,
-  villaExterior
-);
-
-// 右侧实体柱
-villaBox(
-  .35, 2.75, .2,
-  2.65, 1.72, -2.3,
-  0xd6bd9d,
-  villaExterior
+cottagePart(
+  new THREE.BoxGeometry(.20,2.65,4.1),
+  villaWall,
+  2.52,1.65,0
 );
 
 
 // ============================================================
-// 7. 一楼真正的大落地玻璃
+// 5. 一楼落地窗
 // ============================================================
 
-const villaGlass1 = villaBox(
-  1.62, 2.35, .055,
-  -1.7, 1.63, -2.38,
-  0xffffff,
-  villaExterior
-);
+const glassMat=new THREE.MeshPhysicalMaterial({
+  color:0xbfeaf5,
+  transparent:true,
+  opacity:.24,
+  roughness:.08,
+  metalness:.02,
+  transmission:.65,
+  thickness:.04,
+  side:THREE.DoubleSide
+});
 
-villaGlass1.material = villaGlassMat;
-
-const villaGlass2 = villaBox(
-  1.62, 2.35, .055,
-  1.7, 1.63, -2.38,
-  0xffffff,
-  villaExterior
-);
-
-villaGlass2.material = villaGlassMat;
+const frameMat=cottageMat(0x704b3b);
 
 
-// 窗框
-function makeWindowFrame(cx, cy, width, height) {
+// 前面两块大型玻璃
 
-  villaBox(
-    .07, height, .11,
-    cx - width / 2,
-    cy,
-    -2.43,
-    0x634638,
-    villaExterior
+for(const sx of[-1.15,1.15]){
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      1.55,
+      1.65,
+      .055
+    ),
+    glassMat,
+    sx,
+    1.55,
+    -2.235
   );
 
-  villaBox(
-    .07, height, .11,
-    cx + width / 2,
-    cy,
-    -2.43,
-    0x634638,
-    villaExterior
+  // 左右框
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.72,.10),
+    frameMat,
+    sx-.79,
+    1.55,
+    -2.27
   );
 
-  villaBox(
-    width + .12, .07, .11,
-    cx,
-    cy + height / 2,
-    -2.43,
-    0x634638,
-    villaExterior
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.72,.10),
+    frameMat,
+    sx+.79,
+    1.55,
+    -2.27
   );
 
-  villaBox(
-    width + .12, .07, .11,
-    cx,
-    cy - height / 2,
-    -2.43,
-    0x634638,
-    villaExterior
+  // 上下框
+
+  cottagePart(
+    new THREE.BoxGeometry(1.65,.075,.10),
+    frameMat,
+    sx,
+    2.40,
+    -2.27
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.65,.075,.10),
+    frameMat,
+    sx,
+    .70,
+    -2.27
   );
 
   // 中间竖框
-  villaBox(
-    .045,
-    height - .08,
-    .08,
-    cx,
-    cy,
-    -2.45,
-    0x634638,
-    villaExterior
+
+  cottagePart(
+    new THREE.BoxGeometry(.045,1.62,.07),
+    frameMat,
+    sx,
+    1.55,
+    -2.29
+  );
+
+}
+
+
+// ============================================================
+// 6. 二楼
+// ============================================================
+
+cottagePart(
+  new THREE.BoxGeometry(5.2,2.5,.20),
+  villaWall,
+  0,4.28,2.12
+);
+
+cottagePart(
+  new THREE.BoxGeometry(.20,2.5,4.1),
+  villaWall,
+  -2.52,4.28,0
+);
+
+cottagePart(
+  new THREE.BoxGeometry(.20,2.5,4.1),
+  villaWall,
+  2.52,4.28,0
+);
+
+
+// ---------- 二楼正面大窗 ----------
+
+for(const sx of[-1.18,1.18]){
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      1.55,
+      1.35,
+      .055
+    ),
+    glassMat,
+    sx,
+    4.30,
+    -2.235
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.42,.10),
+    frameMat,
+    sx-.79,
+    4.30,
+    -2.27
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.42,.10),
+    frameMat,
+    sx+.79,
+    4.30,
+    -2.27
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.65,.075,.10),
+    frameMat,
+    sx,
+    5.00,
+    -2.27
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.65,.075,.10),
+    frameMat,
+    sx,
+    3.60,
+    -2.27
+  );
+
+}
+
+
+// ============================================================
+// 7. 二楼楼板
+// ============================================================
+
+cottagePart(
+  new THREE.BoxGeometry(6.0,.20,5.0),
+  cottageMat(0x815b43),
+  0,2.92,0
+);
+
+
+// ============================================================
+// 8. 屋顶
+// ============================================================
+
+const roofMat=cottageMat(
+  0x725467,
+  {roughness:.9}
+);
+
+const roofA=cottagePart(
+  new THREE.BoxGeometry(3.25,.24,4.95),
+  roofMat,
+  -1.50,
+  6.22,
+  0
+);
+
+roofA.rotation.z=.47;
+
+
+const roofB=cottagePart(
+  new THREE.BoxGeometry(3.25,.24,4.95),
+  roofMat,
+  1.50,
+  6.22,
+  0
+);
+
+roofB.rotation.z=-.47;
+
+
+// 屋顶横梁
+
+cottagePart(
+  new THREE.CylinderGeometry(
+    .12,
+    .12,
+    5.05,
+    10
+  ),
+  cottageMat(0x604337),
+  0,
+  6.95,
+  0
+).rotation.z=Math.PI/2;
+
+
+// ============================================================
+// 9. 屋檐
+// ============================================================
+
+for(const z of[-2.35,2.35]){
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      5.65,
+      .14,
+      .30
+    ),
+    cottageMat(0x5d4033),
+    0,
+    2.91,
+    z
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      5.65,
+      .14,
+      .30
+    ),
+    cottageMat(0x5d4033),
+    0,
+    5.50,
+    z
   );
 }
 
-makeWindowFrame(-1.7, 1.63, 1.62, 2.35);
-makeWindowFrame(1.7, 1.63, 1.62, 2.35);
-
 
 // ============================================================
-// 8. 大门
+// 10. 门
 // ============================================================
 
-const villaDoor = new THREE.Group();
-villaDoor.position.set(0, 0, -2.46);
+const doorGroup=new THREE.Group();
 
-villaBox(
-  1.25, 2.18, .1,
-  0, 1.48, 0,
-  0x68483b,
-  villaDoor
+doorGroup.position.set(
+  0,
+  0,
+  -2.23
 );
 
-// 门中间装饰
-villaBox(
-  .05, 1.75, .04,
-  0, 1.48, -.07,
-  0x9d745a,
-  villaDoor
+const doorMat=cottageMat(
+  0x654238
 );
 
-const villaDoorHandle = new THREE.Mesh(
-  new THREE.SphereGeometry(.07, 10, 8),
-  villaMat(0xe5bd70, {
-    metalness: .55,
-    roughness: .35
+const doorPanel=new THREE.Mesh(
+  new THREE.BoxGeometry(
+    1.05,
+    1.92,
+    .08
+  ),
+  doorMat
+);
+
+doorPanel.position.set(
+  0,
+  1.28,
+  0
+);
+
+doorPanel.castShadow=true;
+
+doorGroup.add(
+  doorPanel
+);
+
+
+// 门上的小玻璃
+
+const doorGlass=new THREE.Mesh(
+  new THREE.BoxGeometry(
+    .58,
+    .68,
+    .025
+  ),
+  new THREE.MeshPhysicalMaterial({
+    color:0xbfeaf5,
+    transparent:true,
+    opacity:.35,
+    roughness:.1,
+    transmission:.4
   })
 );
 
-villaDoorHandle.position.set(.42, 1.48, -.1);
-villaDoor.add(villaDoorHandle);
-
-villaExterior.add(villaDoor);
-
-
-// 门廊顶
-villaBox(
-  2.8, .16, 1.05,
-  0, 3.12, -2.72,
-  0x795442,
-  villaExterior
+doorGlass.position.set(
+  0,
+  1.55,
+  -.055
 );
 
-// 门廊柱
-for (const villaX of [-1.18, 1.18]) {
+doorGroup.add(
+  doorGlass
+);
 
-  villaCylinder(
-    .09, .11, 2.45,
-    villaX, 1.55, -3.02,
-    0x805940,
-    villaExterior
+
+// 门把手
+
+const knob=new THREE.Mesh(
+  new THREE.SphereGeometry(
+    .07,
+    10,
+    8
+  ),
+  cottageMat(
+    0xe8b96b,
+    {
+      metalness:.55,
+      roughness:.35
+    }
+  )
+);
+
+knob.position.set(
+  .38,
+  1.25,
+  -.08
+);
+
+doorGroup.add(
+  knob
+);
+
+cottage.add(doorGroup);
+
+
+// 门框
+
+for(const sx of[-.57,.57]){
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      .12,
+      2.08,
+      .14
+    ),
+    frameMat,
+    sx,
+    1.34,
+    -2.26
   );
+
+}
+
+cottagePart(
+  new THREE.BoxGeometry(
+    1.25,
+    .12,
+    .14
+  ),
+  frameMat,
+  0,
+  2.36,
+  -2.26
+);
+
+
+// ============================================================
+// 11. 阳台
+// ============================================================
+
+cottagePart(
+  new THREE.BoxGeometry(
+    2.45,
+    .18,
+    1.25
+  ),
+  cottageMat(0xb27a51),
+  0,
+  .38,
+  -2.78
+);
+
+
+// 阳台柱
+
+for(const x of[-1.05,1.05]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(
+      .08,
+      .10,
+      1.35,
+      8
+    ),
+    cottageMat(0x76503e),
+    x,
+    .88,
+    -3.05
+  );
+
+}
+
+
+// 栏杆
+
+for(const x of[-.7,0,.7]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(
+      .045,
+      .045,
+      .72,
+      6
+    ),
+    frameMat,
+    x,
+    .77,
+    -3.30
+  );
+
+}
+
+cottagePart(
+  new THREE.BoxGeometry(
+    2.25,
+    .09,
+    .09
+  ),
+  frameMat,
+  0,
+  1.12,
+  -3.30
+);
+
+
+// ============================================================
+// 12. 门口台阶
+// ============================================================
+
+for(let i=0;i<2;i++){
+
+  cottagePart(
+    new THREE.BoxGeometry(
+      1.55+i*.25,
+      .16,
+      .55
+    ),
+    cottageMat(0x956447),
+    0,
+    .20+i*.16,
+    -3.18-i*.28
+  );
+
 }
 
 
 // ============================================================
-// 9. 二楼：退台式结构
+// 13. 花箱
 // ============================================================
 
-// 二楼主体
-villaBox(
-  5.15, 2.55, 4.15,
-  0, 4.28, .25,
-  0xe9d5b5,
-  villaExterior
-);
+for(const sx of[-1.15,1.15]){
 
-
-// 二楼前方退台
-villaBox(
-  5.65, .16, 1.35,
-  0, 3.02, -2.2,
-  0x9a694c,
-  villaExterior
-);
-
-
-// 二楼落地窗
-const villaUpperGlass = villaBox(
-  3.75, 1.65, .055,
-  0, 4.3, -1.88,
-  0xffffff,
-  villaExterior
-);
-
-villaUpperGlass.material = villaGlassMat;
-
-
-// 二楼窗框
-villaBox(
-  .07, 1.72, .11,
-  -1.95, 4.3, -1.94,
-  0x634638,
-  villaExterior
-);
-
-villaBox(
-  .07, 1.72, .11,
-  1.95, 4.3, -1.94,
-  0x634638,
-  villaExterior
-);
-
-villaBox(
-  3.95, .07, .11,
-  0, 5.16, -1.94,
-  0x634638,
-  villaExterior
-);
-
-villaBox(
-  3.95, .07, .11,
-  0, 3.44, -1.94,
-  0x634638,
-  villaExterior
-);
-
-villaBox(
-  .045, 1.62, .08,
-  0, 4.3, -1.96,
-  0x634638,
-  villaExterior
-);
-
-
-// ============================================================
-// 10. 二楼露台栏杆
-// ============================================================
-
-for (const villaX of [-2.4, -1.2, 0, 1.2, 2.4]) {
-
-  villaCylinder(
-    .045, .045, .75,
-    villaX, 3.48, -2.82,
-    0x634638,
-    villaExterior
-  );
-}
-
-villaBox(
-  5.0, .08, .08,
-  0, 3.86, -2.82,
-  0x634638,
-  villaExterior
-);
-
-
-// ============================================================
-// 11. 屋顶
-// ============================================================
-
-const villaRoofA = villaBox(
-  3.25, .22, 4.65,
-  -1.42, 6.08, .25,
-  0x655064,
-  villaExterior
-);
-
-villaRoofA.rotation.z = .43;
-
-const villaRoofB = villaBox(
-  3.25, .22, 4.65,
-  1.42, 6.08, .25,
-  0x655064,
-  villaExterior
-);
-
-villaRoofB.rotation.z = -.43;
-
-
-// 屋顶顶梁
-villaCylinder(
-  .11, .11, 5.1,
-  0, 6.83, .25,
-  0x5e4034,
-  villaExterior
-).rotation.z = Math.PI / 2;
-
-
-// ============================================================
-// 12. 烟囱
-// ============================================================
-
-villaBox(
-  .62, 2.05, .62,
-  1.72, 6.35, .85,
-  0xb5afa4,
-  villaExterior
-);
-
-villaBox(
-  .78, .15, .78,
-  1.72, 7.42, .85,
-  0x604439,
-  villaExterior
-);
-
-
-// ============================================================
-// 13. 窗台花箱
-// ============================================================
-
-for (const villaX of [-1.7, 1.7]) {
-
-  villaBox(
-    1.25, .16, .3,
-    villaX, .92, -2.55,
-    0x704b3b,
-    villaExterior
+  cottagePart(
+    new THREE.BoxGeometry(
+      1.45,
+      .18,
+      .28
+    ),
+    cottageMat(0x684537),
+    sx,
+    .63,
+    -2.37
   );
 
-  for (let villaI = 0; villaI < 5; villaI++) {
+  for(let i=0;i<6;i++){
 
-    const villaFlower = new THREE.Mesh(
-      new THREE.SphereGeometry(.09, 8, 6),
-      villaMat(
-        [0xffa5b9, 0xffdf88, 0xc9b5ff][villaI % 3]
-      )
+    const colors=[
+      0xff9fb5,
+      0xffe28c,
+      0xc8b5ff
+    ];
+
+    cottagePart(
+      new THREE.SphereGeometry(
+        .085,
+        7,
+        5
+      ),
+      cottageMat(
+        colors[i%3],
+        {roughness:1}
+      ),
+      sx-.55+i*.22,
+      .77+(i%2)*.05,
+      -2.37
     );
 
-    villaFlower.position.set(
-      villaX - .42 + villaI * .21,
-      1.08 + (villaI % 2) * .05,
-      -2.57
-    );
-
-    villaExterior.add(villaFlower);
-  }
-}
-
-
-// ============================================================
-// 14. 阳台植物
-// ============================================================
-
-function villaPlant(px, pz, parent) {
-
-  const plantGroup = new THREE.Group();
-
-  villaCylinder(
-    .22, .18, .32,
-    0, .16, 0,
-    0xb87961,
-    plantGroup
-  );
-
-  for (let villaI = 0; villaI < 7; villaI++) {
-
-    const villaA = villaI / 7 * TAU;
-
-    const villaLeaf = new THREE.Mesh(
-      new THREE.SphereGeometry(.13, 7, 5),
-      villaMat(
-        [0x71966f, 0x84a77b, 0x668d70][villaI % 3],
-        {roughness: 1}
-      )
-    );
-
-    villaLeaf.scale.set(.7, 1.7, .45);
-
-    villaLeaf.position.set(
-      Math.cos(villaA) * .18,
-      .48 + Math.sin(villaI) * .04,
-      Math.sin(villaA) * .18
-    );
-
-    villaLeaf.rotation.z = Math.cos(villaA) * .45;
-
-    plantGroup.add(villaLeaf);
   }
 
-  plantGroup.position.set(px, .55, pz);
-  parent.add(plantGroup);
 }
 
-villaPlant(-2.0, -2.82, villaExterior);
-villaPlant(2.0, -2.82, villaExterior);
+
+// ============================================================
+// 14. 烟囱
+// ============================================================
+
+cottagePart(
+  new THREE.BoxGeometry(
+    .58,
+    2.0,
+    .58
+  ),
+  cottageMat(0xb9b1a2),
+  1.65,
+  6.45,
+  .75
+);
+
+cottagePart(
+  new THREE.BoxGeometry(
+    .72,
+    .15,
+    .72
+  ),
+  cottageMat(0x654535),
+  1.65,
+  7.48,
+  .75
+);
 
 
 // ============================================================
-// 15. 一楼室内地板
+// 15. 烟雾
 // ============================================================
 
-villaBox(
-  5.25, .1, 4.35,
-  0, .43, 0,
+const smoke=[];
+
+for(let i=0;i<4;i++){
+
+  const s=spr(
+    glowT,
+    0xdedede,
+    1,
+    0
+  );
+
+  scene.remove(s);
+  cottage.add(s);
+  smoke.push(s);
+
+}
+
+
+// ============================================================
+// 16. 外部灯光
+// ============================================================
+
+const cottageLamp=new THREE.PointLight(
+  0xffc56e,
+  0,
+  9,
+  2
+);
+
+cottageLamp.position.set(
+  0,
+  2.25,
+  -2.62
+);
+
+cottage.add(
+  cottageLamp
+);
+
+
+const cottageGlow=spr(
+  glowT,
+  0xffc56e,
+  1.5,
+  0
+);
+
+scene.remove(cottageGlow);
+
+cottageGlow.position.set(
+  0,
+  2.25,
+  -2.63
+);
+
+cottage.add(
+  cottageGlow
+);
+
+
+// ============================================================
+// 17. 室内
+// ============================================================
+
+const interior=new THREE.Group();
+
+const F1=.43;
+const F2=3.05;
+
+const f1=new THREE.Group();
+const f2=new THREE.Group();
+
+interior.add(
+  f1,
+  f2
+);
+
+f2.visible=false;
+
+
+// ---------- 状态 ----------
+
+let insideCottage=false;
+let upFloor=false;
+let inBath=false;
+let lastHs='';
+
+
+// ============================================================
+// 18. 室内建模工具
+// ============================================================
+
+const B=(
+  w,h,d,
+  x,y,z,
+  color,
+  parent=f1,
+  options={}
+)=>{
+
+  const m=new THREE.Mesh(
+    new THREE.BoxGeometry(
+      w,h,d
+    ),
+    cottageMat(
+      color,
+      options
+    )
+  );
+
+  m.position.set(
+    x,y,z
+  );
+
+  m.castShadow=true;
+  m.receiveShadow=true;
+
+  parent.add(m);
+
+  return m;
+};
+
+
+const Cy=(
+  rt,rb,h,
+  x,y,z,
+  color,
+  parent=f1,
+  options={}
+)=>{
+
+  const m=new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      rt,
+      rb,
+      h,
+      12
+    ),
+    cottageMat(
+      color,
+      options
+    )
+  );
+
+  m.position.set(
+    x,y,z
+  );
+
+  m.castShadow=true;
+  m.receiveShadow=true;
+
+  parent.add(m);
+
+  return m;
+};
+
+
+const A=(
+  w,h,d,
+  x,y,z,
+  color,
+  options={}
+)=>
+  B(
+    w,h,d,
+    x,
+    F1+y,
+    z,
+    color,
+    f1,
+    options
+  );
+
+
+const U=(
+  w,h,d,
+  x,y,z,
+  color,
+  options={}
+)=>
+  B(
+    w,h,d,
+    x,
+    F2+y,
+    z,
+    color,
+    f2,
+    options
+  );
+
+
+// ============================================================
+// 19. 一楼地板
+// ============================================================
+
+B(
+  5.0,
+  .08,
+  3.95,
+  0,
+  .39,
+  0,
+  0xd5a46d,
+  interior
+);
+
+
+// ============================================================
+// 20. 室内墙
+// ============================================================
+
+B(
+  5.0,
+  2.45,
+  .10,
+  0,
+  1.68,
+  1.98,
+  0xf0dfc6,
+  interior
+);
+
+B(
+  .10,
+  2.45,
+  3.9,
+  -2.42,
+  1.68,
+  0,
+  0xf0dfc6,
+  interior
+);
+
+B(
+  .10,
+  2.45,
+  3.9,
+  2.42,
+  1.68,
+  0,
+  0xf0dfc6,
+  interior
+);
+
+
+// 正面墙只保留两侧
+
+B(
+  1.9,
+  2.45,
+  .10,
+  -1.52,
+  1.68,
+  -1.98,
+  0xf0dfc6,
+  interior
+);
+
+B(
+  1.9,
+  2.45,
+  .10,
+  1.52,
+  1.68,
+  -1.98,
+  0xf0dfc6,
+  interior
+);
+
+
+// ============================================================
+// 21. 二楼
+// ============================================================
+
+B(
+  4.0,
+  .20,
+  3.95,
+  -.35,
+  2.95,
+  0,
   0xc99562,
-  villaFloor1
-);
-
-// 地毯
-villaBox(
-  2.4, .035, 1.65,
-  -.65, .49, -.35,
-  0xdba6a9,
-  villaFloor1,
-  {roughness: 1}
+  f2
 );
 
 
-// ============================================================
-// 16. 一楼室内墙
-// ============================================================
+// 二楼后墙
 
-// 后墙
-villaBox(
-  5.15, 2.45, .12,
-  0, 1.72, 2.12,
+B(
+  5.0,
+  2.45,
+  .10,
+  0,
+  4.28,
+  1.98,
   0xf0dfc6,
-  villaFloor1
+  f2
 );
 
-// 左墙
-villaBox(
-  .12, 2.45, 4.0,
-  -2.52, 1.72, .05,
+
+// 二楼侧墙
+
+B(
+  .10,
+  2.45,
+  3.9,
+  -2.42,
+  4.28,
+  0,
   0xf0dfc6,
-  villaFloor1
+  f2
 );
 
-// 右墙
-villaBox(
-  .12, 2.45, 4.0,
-  2.52, 1.72, .05,
+B(
+  .10,
+  2.45,
+  3.9,
+  2.42,
+  4.28,
+  0,
   0xf0dfc6,
-  villaFloor1
+  f2
 );
 
 
 // ============================================================
-// 17. 客厅沙发
+// 22. 楼梯
 // ============================================================
 
-villaBox(
-  .95, .42, 1.8,
-  -1.72, .72, -.55,
-  0x91a7b8,
-  villaFloor1
-);
+for(let i=0;i<12;i++){
 
-villaBox(
-  .2, .72, 1.8,
-  -2.17, 1.03, -.55,
-  0x7d93a3,
-  villaFloor1
-);
+  const h=(i+1)*.22;
 
-for (const villaZ of [-1.2, .1]) {
-
-  villaBox(
-    .3, .45, .22,
-    -1.72, .84, villaZ,
-    0x839bad,
-    villaFloor1
+  B(
+    .82,
+    h,
+    .20,
+    1.85,
+    F1+h/2,
+    -1.45+i*.20,
+    0xb27a51,
+    f1
   );
+
+}
+
+
+// 扶手
+
+U(
+  .05,
+  .06,
+  2.5,
+  1.45,
+  .95,
+  -.35,
+  0x704b3b
+);
+
+for(const z of[-1.55,-.35,.85]){
+
+  U(
+    .05,
+    .95,
+    .05,
+    1.45,
+    .475,
+    z,
+    0x704b3b
+  );
+
 }
 
 
 // ============================================================
-// 18. 茶几
+// 23. 客厅地毯
 // ============================================================
 
-villaBox(
-  1.15, .12, .68,
-  -.65, .86, -.48,
-  0x8b6247,
-  villaFloor1
+A(
+  2.35,
+  .035,
+  1.55,
+  -.70,
+  .02,
+  -.45,
+  0xdca9b0,
+  {roughness:1}
 );
 
-for (const villaX of [-.42, .42]) {
-  for (const villaZ of [-.22, .22]) {
 
-    villaBox(
-      .07, .38, .07,
-      -.65 + villaX,
-      .67,
-      -.48 + villaZ,
-      0x674536,
-      villaFloor1
+// ============================================================
+// 24. 沙发
+// ============================================================
+
+A(
+  .92,
+  .45,
+  1.70,
+  -1.78,
+  .24,
+  -.45,
+  0x8fa5b5
+);
+
+A(
+  .22,
+  .72,
+  1.70,
+  -2.20,
+  .58,
+  -.45,
+  0x7890a2
+);
+
+
+// 靠枕
+
+for(const z of[-.92,.05]){
+
+  A(
+    .30,
+    .28,
+    .30,
+    -1.68,
+    .58,
+    z,
+    0xd9b5bb,
+    {roughness:1}
+  );
+
+}
+
+
+// ============================================================
+// 25. 茶几
+// ============================================================
+
+A(
+  1.05,
+  .12,
+  .65,
+  -.65,
+  .40,
+  -.45,
+  0x8b6247
+);
+
+for(const x of[-.40,.40]){
+  for(const z of[-.22,.22]){
+
+    A(
+      .07,
+      .42,
+      .07,
+      -.65+x,
+      .20,
+      -.45+z,
+      0x684638
     );
+
   }
 }
 
 
-// 茶杯
-villaCylinder(
-  .08, .08, .05,
-  -.65, .95, -.48,
-  0xf5e4df,
-  villaFloor1
+// ============================================================
+// 26. 电视柜
+// ============================================================
+
+A(
+  1.55,
+  .45,
+  .38,
+  .82,
+  .23,
+  1.60,
+  0x927254
+);
+
+A(
+  1.35,
+  .72,
+  .06,
+  .82,
+  1.00,
+  1.42,
+  0x24242b,
+  {
+    roughness:.2,
+    metalness:.2
+  }
+);
+
+A(
+  1.12,
+  .52,
+  .012,
+  .82,
+  1.00,
+  1.385,
+  0x405675,
+  {
+    roughness:.2,
+    emissive:0x253b5b,
+    emissiveIntensity:.5
+  }
 );
 
 
 // ============================================================
-// 19. 钢琴区域
+// 27. 钢琴区
 // ============================================================
 
-const villaPiano = new THREE.Group();
+const piano=new THREE.Group();
 
-villaBox(
-  1.4, 1.2, .45,
-  0, .65, 0,
-  0x4e3b43,
-  villaPiano
-);
+function pianoBox(
+  w,h,d,x,y,z,color
+){
 
-villaBox(
-  1.48, .08, .5,
-  0, 1.28, 0,
-  0x684d55,
-  villaPiano
-);
-
-villaBox(
-  1.25, .06, .27,
-  0, .83, -.31,
-  0x403039,
-  villaPiano
-);
-
-villaBox(
-  1.1, .05, .22,
-  0, .88, -.32,
-  0xf7f0e5,
-  villaPiano
-);
-
-for (let villaI = 0; villaI < 7; villaI++) {
-
-  villaBox(
-    .05, .04, .12,
-    -.45 + villaI * .15,
-    .92,
-    -.28,
-    0x211b20,
-    villaPiano
+  const m=new THREE.Mesh(
+    new THREE.BoxGeometry(
+      w,h,d
+    ),
+    cottageMat(color)
   );
+
+  m.position.set(
+    x,y,z
+  );
+
+  m.castShadow=true;
+
+  piano.add(m);
+
 }
 
-villaPiano.position.set(-1.3, 0, 1.55);
-villaFloor1.add(villaPiano);
+
+pianoBox(
+  1.35,
+  1.20,
+  .42,
+  0,.60,0,
+  0x4e3b43
+);
+
+pianoBox(
+  1.42,
+  .08,
+  .48,
+  0,1.24,0,
+  0x684d55
+);
+
+pianoBox(
+  1.30,
+  .06,
+  .26,
+  0,.78,-.30,
+  0x4e3b43
+);
+
+pianoBox(
+  1.12,
+  .05,
+  .22,
+  0,.82,-.30,
+  0xf6efe4
+);
+
+for(let i=0;i<7;i++){
+
+  pianoBox(
+    .05,
+    .04,
+    .12,
+    -.45+i*.15,
+    .86,
+    -.26,
+    0x201a1e
+  );
+
+}
+
+piano.position.set(
+  -1.38,
+  F1,
+  1.48
+);
+
+f1.add(
+  piano
+);
 
 
 // 钢琴凳
-villaCylinder(
-  .2, .18, .45,
-  -1.3, .66, .82,
-  0x76503e,
-  villaFloor1
+
+Cy(
+  .20,
+  .18,
+  .45,
+  -1.38,
+  F1+.23,
+  .78,
+  0x76503e
 );
 
 
 // ============================================================
-// 20. 电视墙
+// 28. 厨房
 // ============================================================
 
-villaBox(
-  1.75, .5, .4,
-  .85, .7, 1.72,
-  0x927356,
-  villaFloor1
+A(
+  1.50,
+  .90,
+  .60,
+  .92,
+  .45,
+  1.55,
+  0xc9b79c
 );
 
-villaBox(
-  1.55, .82, .06,
-  .85, 1.42, 1.49,
-  0x25232c,
-  villaFloor1
+A(
+  1.55,
+  .06,
+  .64,
+  .92,
+  .93,
+  1.55,
+  0x7a6a5c
 );
 
-villaBox(
-  1.32, .62, .015,
-  .85, 1.42, 1.45,
-  0x354968,
-  villaFloor1,
-  {
-    emissive: 0x233b5b,
-    emissiveIntensity: .45
-  }
-);
-
-
-// ============================================================
-// 21. 厨房
-// ============================================================
-
-villaBox(
-  1.65, .82, .62,
-  .95, .92, 1.45,
-  0xc9b79c,
-  villaFloor1
-);
-
-villaBox(
-  1.7, .07, .65,
-  .95, 1.37, 1.45,
-  0x75675b,
-  villaFloor1
-);
 
 // 水槽
-villaBox(
-  .52, .04, .35,
-  .48, 1.41, 1.45,
-  0x9eb7c3,
-  villaFloor1
+
+A(
+  .48,
+  .04,
+  .35,
+  .55,
+  .97,
+  1.55,
+  0x9fb7c4
 );
 
-// 炉灶
-villaBox(
-  .6, .04, .48,
-  1.38, 1.42, 1.45,
-  0x29282d,
-  villaFloor1
+
+// 灶台
+
+A(
+  .58,
+  .04,
+  .50,
+  1.30,
+  .96,
+  1.55,
+  0x2a2a2e
 );
 
-for (const villaX of [1.24, 1.52]) {
-  for (const villaZ of [1.34, 1.56]) {
+for(const x of[1.18,1.42]){
+  for(const z of[1.43,1.67]){
 
-    villaCylinder(
-      .075, .075, .025,
-      villaX, 1.46, villaZ,
-      0x55545c,
-      villaFloor1
+    Cy(
+      .07,
+      .07,
+      .02,
+      x,
+      F1+.99,
+      z,
+      0x555560
     );
+
   }
 }
 
 
 // 冰箱
-villaBox(
-  .72, 1.9, .68,
-  2.05, 1.38, 1.4,
+
+A(
+  .70,
+  1.85,
+  .65,
+  2.02,
+  .93,
+  1.50,
   0xe9eef0,
-  villaFloor1,
-  {roughness: .38}
+  {roughness:.35}
 );
 
 
 // ============================================================
-// 22. 餐桌
+// 29. 餐桌
 // ============================================================
 
-villaBox(
-  1.1, .08, .72,
-  .65, 1.03, .05,
-  0x8b6247,
-  villaFloor1
+A(
+  1.00,
+  .07,
+  .68,
+  .55,
+  .75,
+  .15,
+  0x8b6247
 );
 
-for (const villaX of [-.43, .43]) {
-  for (const villaZ of [-.28, .28]) {
+for(const x of[-.40,.40]){
+  for(const z of[-.25,.25]){
 
-    villaBox(
-      .07, .7, .07,
-      .65 + villaX,
-      .67,
-      .05 + villaZ,
-      0x674536,
-      villaFloor1
+    A(
+      .06,
+      .72,
+      .06,
+      .55+x,
+      .36,
+      .15+z,
+      0x6f4b39
     );
+
   }
 }
 
 
 // ============================================================
-// 23. 室内绿植
+// 30. 二楼卧室
 // ============================================================
 
-villaPlant(1.9, .65, villaFloor1);
-
-
-// ============================================================
-// 24. 二楼地板
-// ============================================================
-
-villaBox(
-  5.15, .16, 4.0,
-  0, 3.03, .15,
-  0xc99562,
-  villaFloor2
+U(
+  1.55,
+  .35,
+  2.00,
+  -1.45,
+  .20,
+  .75,
+  0x76503e
 );
 
-
-// ============================================================
-// 25. 二楼卧室
-// ============================================================
-
-villaBox(
-  1.55, .35, 2.0,
-  -1.15, 3.52, .85,
-  0x76503e,
-  villaFloor2
+U(
+  1.45,
+  .20,
+  1.90,
+  -1.45,
+  .47,
+  .75,
+  0xf1e5d2
 );
 
-villaBox(
-  1.45, .2, 1.9,
-  -1.15, 3.78, .85,
-  0xf1e5d2,
-  villaFloor2,
-  {roughness: 1}
-);
-
-villaBox(
-  1.15, .15, 1.0,
-  -1.15, 3.98, .72,
+U(
+  1.12,
+  .16,
+  .95,
+  -1.45,
+  .65,
+  .68,
   0xffd8df,
-  villaFloor2,
-  {roughness: 1}
+  {roughness:1}
 );
 
-villaBox(
-  .85, .14, .4,
-  -1.15, 4.03, 1.52,
-  0xffeef2,
-  villaFloor2
+U(
+  .85,
+  .14,
+  .42,
+  -1.45,
+  .70,
+  1.47,
+  0xffeef2
 );
 
-villaBox(
-  1.6, .72, .08,
-  -1.15, 3.85, 1.86,
-  0x76503e,
-  villaFloor2
-);
-
-
-// ============================================================
-// 26. 二楼床头柜
-// ============================================================
-
-villaBox(
-  .48, .52, .48,
-  .05, 3.58, 1.52,
-  0x8b6247,
-  villaFloor2
-);
-
-villaBox(
-  .15, .08, .15,
-  .05, 3.9, 1.52,
-  0xffc66f,
-  villaFloor2,
-  {
-    emissive: 0xffa94d,
-    emissiveIntensity: .7
-  }
+U(
+  1.55,
+  .70,
+  .08,
+  -1.45,
+  .55,
+  1.78,
+  0x76503e
 );
 
 
-// ============================================================
-// 27. 二楼书桌
-// ============================================================
+// 床头柜
 
-villaBox(
-  1.25, .08, .55,
-  .55, 3.82, 1.48,
-  0x8b6247,
-  villaFloor2
-);
-
-villaBox(
-  .08, .72, .5,
-  .05, 3.48, 1.48,
-  0x674536,
-  villaFloor2
-);
-
-villaBox(
-  .08, .72, .5,
-  1.05, 3.48, 1.48,
-  0x674536,
-  villaFloor2
+U(
+  .45,
+  .55,
+  .45,
+  -.35,
+  .27,
+  1.45,
+  0x8b6247
 );
 
 
-// 书
-for (let villaI = 0; villaI < 4; villaI++) {
+// 衣柜
 
-  villaBox(
-    .06, .22, .18,
-    .35 + villaI * .1,
-    3.98,
-    1.43,
-    [0x8f6470,0x7b8fa1,0xb38b65,0x8a9c78][villaI],
-    villaFloor2
-  );
-}
-
-
-// ============================================================
-// 28. 衣柜
-// ============================================================
-
-villaBox(
-  .95, 2.0, .58,
-  2.0, 4.03, .95,
-  0x9a7a5a,
-  villaFloor2
+U(
+  .90,
+  2.00,
+  .55,
+  1.85,
+  1.00,
+  1.48,
+  0x9a7a5a
 );
 
-villaBox(
-  .04, 1.55, .05,
-  1.78, 4.03, .65,
-  0x68483b,
-  villaFloor2
-);
 
-villaBox(
-  .04, 1.55, .05,
-  2.22, 4.03, .65,
-  0x68483b,
-  villaFloor2
+// 卧室地毯
+
+U(
+  1.40,
+  .035,
+  1.00,
+  -.35,
+  .02,
+  .20,
+  0xe0b5b0
 );
 
 
 // ============================================================
-// 29. 二楼浴室
+// 31. 二楼书桌
 // ============================================================
 
-villaBox(
-  1.65, .04, 1.45,
-  -1.65, 3.12, -1.15,
-  0xcfe3e6,
-  villaFloor2
+U(
+  1.20,
+  .08,
+  .55,
+  .35,
+  .76,
+  1.55,
+  0x8b6247
 );
 
-// 浴室墙
-villaBox(
-  1.7, 2.25, .08,
-  -1.65, 4.15, -.42,
-  0xe6eef0,
-  villaFloor2
+U(
+  .08,
+  .72,
+  .50,
+  -.20,
+  .36,
+  1.55,
+  0x6f4b39
 );
 
-villaBox(
-  .08, 2.25, 1.0,
-  -.8, 4.15, -1.35,
-  0xe6eef0,
-  villaFloor2
+U(
+  .08,
+  .72,
+  .50,
+  .90,
+  .36,
+  1.55,
+  0x6f4b39
+);
+
+
+// ============================================================
+// 32. 二楼浴室
+// ============================================================
+
+U(
+  1.85,
+  .03,
+  1.45,
+  -1.45,
+  .015,
+  -1.15,
+  0xcfe3e6
 );
 
 
 // 浴缸
-villaBox(
-  .9, .48, 1.15,
-  -2.05, 3.4, -1.25,
-  0xf5f7f8,
-  villaFloor2,
-  {roughness: .3}
-);
 
-villaBox(
-  .68, .025, .95,
-  -2.05, 3.65, -1.25,
-  0x9fd3e6,
-  villaFloor2,
-  {roughness: .2}
-);
-
-
-// 洗手台
-villaBox(
-  .55, .42, .4,
-  -1.05, 3.43, -.7,
+U(
+  .80,
+  .50,
+  1.15,
+  -1.95,
+  .25,
+  -1.18,
   0xf4f7f8,
-  villaFloor2,
-  {roughness: .3}
+  {roughness:.25}
 );
 
-
-// 镜子
-villaBox(
-  .48, .62, .03,
-  -1.05, 4.05, -.5,
-  0xcfe8f2,
-  villaFloor2,
-  {roughness: .2}
+U(
+  .65,
+  .02,
+  1.00,
+  -1.95,
+  .51,
+  -1.18,
+  0x9fd3e6,
+  {roughness:.15}
 );
 
 
 // ============================================================
-// 30. 楼梯
+// 33. 室内灯
 // ============================================================
 
-for (let villaI = 0; villaI < 12; villaI++) {
-
-  const villaH = (villaI + 1) * .22;
-
-  villaBox(
-    .82,
-    villaH,
-    .24,
-    2.02,
-    .45 + villaH / 2,
-    -1.65 + villaI * .19,
-    0xb27a51,
-    villaFloor1
-  );
-}
-
-// 楼梯扶手
-villaBox(
-  .06, .06, 2.55,
-  1.58, 1.62, -.35,
-  0x704b3b,
-  villaFloor1
-);
-
-for (const villaZ of [-1.6, -.45, .7]) {
-
-  villaCylinder(
-    .045, .045, .9,
-    1.58, 1.08, villaZ,
-    0x704b3b,
-    villaFloor1
-  );
-}
-
-
-// ============================================================
-// 31. 落地窗旁休闲椅
-// ============================================================
-
-const villaChair = new THREE.Group();
-
-villaBox(
-  .72, .18, .75,
-  0, .62, 0,
-  0xd59ca1,
-  villaChair
-);
-
-villaBox(
-  .72, .65, .12,
-  0, .98, .32,
-  0xc98791,
-  villaChair
-);
-
-villaBox(
-  .1, .6, .1,
-  -.28, .35, -.28,
-  0x76503e,
-  villaChair
-);
-
-villaBox(
-  .1, .6, .1,
-  .28, .35, -.28,
-  0x76503e,
-  villaChair
-);
-
-villaChair.position.set(.15, 0, -1.55);
-villaFloor2.add(villaChair);
-
-
-// ============================================================
-// 32. 室内灯光
-// ============================================================
-
-const villaLivingLight = new THREE.PointLight(
-  0xffc879,
+const interiorWarmLight=new THREE.PointLight(
+  0xffc77a,
   0,
-  8,
+  10,
   2
 );
 
-villaLivingLight.position.set(
-  -.4,
-  2.65,
-  -.4
-);
-
-villaLights.add(villaLivingLight);
-
-
-const villaBedroomLight = new THREE.PointLight(
-  0xffc879,
+interiorWarmLight.position.set(
   0,
-  6,
-  2
+  3.0,
+  0
 );
 
-villaBedroomLight.position.set(
-  -.8,
-  5.0,
-  .7
+cottage.add(
+  interiorWarmLight
 );
 
-villaLights.add(villaBedroomLight);
 
-
-// 门口灯
-const villaDoorLight = new THREE.PointLight(
-  0xffc56e,
+const ceilingLamp=new THREE.PointLight(
+  0xffd18a,
   0,
   7,
   2
 );
 
-villaDoorLight.position.set(
-  0,
-  2.35,
-  -2.85
+ceilingLamp.position.set(
+  -.3,
+  2.55,
+  -.3
 );
 
-villaLights.add(villaDoorLight);
-
-
-// 外部墙灯
-const villaOutsideLight = new THREE.PointLight(
-  0xffb86b,
-  0,
-  13,
-  2
+cottage.add(
+  ceilingLamp
 );
-
-villaOutsideLight.position.set(
-  COTTAGE_X,
-  COTTAGE_Y + 1.4,
-  COTTAGE_Z - 2
-);
-
-scene.add(villaOutsideLight);
 
 
 // ============================================================
-// 33. 猫窝
+// 34. 猫窝
 // ============================================================
 
-const villaCatBed = new THREE.Group();
+const catBed=new THREE.Group();
 
-villaCylinder(
-  .65, .72, .18,
-  0, .1, 0,
-  0x9d6872,
-  villaCatBed
-);
-
-const villaCatCushion = new THREE.Mesh(
-  new THREE.SphereGeometry(.52, 12, 8),
-  villaMat(0xe8b8bd, {roughness: .95})
-);
-
-villaCatCushion.scale.y = .22;
-villaCatCushion.position.y = .22;
-villaCatBed.add(villaCatCushion);
-
-villaCatBed.position.set(
+catBed.position.set(
   2.15,
-  .1,
-  -3.2
+  .10,
+  -3.35
 );
 
-villaExterior.add(villaCatBed);
+const bedBase=new THREE.Mesh(
+  new THREE.CylinderGeometry(
+    .65,
+    .72,
+    .18,
+    12
+  ),
+  cottageMat(0x9d6872)
+);
 
+bedBase.castShadow=true;
 
-// ============================================================
-// 34. 烟雾
-// ============================================================
+catBed.add(
+  bedBase
+);
 
-const villaSmoke = [];
+const bedCushion=new THREE.Mesh(
+  new THREE.SphereGeometry(
+    .52,
+    12,
+    8
+  ),
+  cottageMat(
+    0xe8b8bd,
+    {roughness:.95}
+  )
+);
 
-for (let villaI = 0; villaI < 4; villaI++) {
+bedCushion.scale.y=.22;
+bedCushion.position.y=.13;
 
-  const villaSmokeParticle =
-    spr(glowT, 0xdedede, 1, 0);
+catBed.add(
+  bedCushion
+);
 
-  scene.remove(villaSmokeParticle);
-
-  villaSmokeParticle.position.set(
-    1.72,
-    7.7 + villaI * .5,
-    .85
-  );
-
-  villaSmokeParticle.visible = true;
-
-  villaExterior.add(villaSmokeParticle);
-
-  villaSmoke.push(villaSmokeParticle);
-}
+cottage.add(
+  catBed
+);
 
 
 // ============================================================
 // 35. 加入场景
 // ============================================================
 
-scene.add(cottage);
+cottage.add(
+  interior
+);
+
+interior.visible=false;
+
+scene.add(
+  cottage
+);
 
 
 // ============================================================
-// 36. 玩家进入状态
+// 36. 外部 / 内部切换
 // ============================================================
 
-let insideCottage = false;
-let villaUpFloor = false;
+const cottageExterior=[];
 
-function villaLocalPlayer() {
+for(const obj of cottage.children){
+
+  if(
+    obj!==interior &&
+    obj!==catBed &&
+    !obj.isLight
+  ){
+
+    cottageExterior.push(
+      obj
+    );
+
+  }
+
+}
+
+
+// ============================================================
+// 37. 小屋局部坐标
+// ============================================================
+
+function cottageLocal(){
 
   return cottage.worldToLocal(
     new THREE.Vector3(
@@ -1515,438 +1941,553 @@ function villaLocalPlayer() {
       ch.position.z
     )
   );
+
 }
 
 
 // ============================================================
-// 37. 进入 / 离开别墅
+// 38. 设置小屋状态
 // ============================================================
 
-function villaSetMode(inside) {
+function setCottageMode(inside){
 
-  insideCottage = inside;
+  insideCottage=inside;
 
-  villaUpFloor = false;
+  upFloor=false;
+  inBath=false;
 
-  villaFloor2.visible = false;
+  f2.visible=false;
 
-  villaExterior.visible = !inside;
-  villaInterior.visible = inside;
+  cottageExterior.forEach(
+    obj=>{
+      obj.visible=!inside;
+    }
+  );
 
-  $('home').style.display = 'block';
+  interior.visible=inside;
 
-  $('home').textContent =
-    inside ? '出门' : '进屋';
+  $('home').style.display='block';
 
-  villaLivingLight.intensity =
-    inside ? .9 + 1.2 * night : 0;
+  $('home').textContent=
+    inside?'出门':'进屋';
 
-  villaBedroomLight.intensity =
-    inside ? .5 + .8 * night : 0;
+  interiorWarmLight.intensity=
+    inside ? 1.4 : 0;
 
-  villaDoorLight.intensity =
-    inside ? .2 + .6 * night : 0;
+  ceilingLamp.intensity=
+    inside ? 1.0 : 0;
 
-  toast(
-    inside
+  if(typeof toast==='function'){
+
+    toast(
+      inside
       ? '欢迎回家。'
       : '回到小岛上了。'
-  );
+    );
+
+  }
+
 }
 
 
-function villaEnter() {
+// ============================================================
+// 39. 进入小屋
+// ============================================================
 
-  const villaP = villaLocalPlayer();
+function enterCottage(){
 
-  if (
-    Math.abs(villaP.x) > 1.7 ||
-    villaP.z > -1.55 ||
-    villaP.z < -3.55
-  ) {
+  const p=cottageLocal();
 
-    toast('请走到别墅正门附近');
+  // 必须在门口附近
+
+  if(
+    Math.abs(p.x)>1.65 ||
+    p.z>-1.55 ||
+    p.z<-3.65
+  ){
+
+    toast('请走到小屋正门附近');
 
     return;
   }
 
-  villaP.set(
-    0,
-    .55,
-    -1.15
-  );
 
-  const villaWorld =
-    cottage.localToWorld(villaP);
-
-  ch.position.set(
-    villaWorld.x,
-    COTTAGE_Y + .43,
-    villaWorld.z
-  );
-
-  villaSetMode(true);
-}
-
-
-function villaExit() {
-
-  const villaP = villaLocalPlayer();
-
-  villaP.set(
-    0,
-    -.02,
-    -3.2
-  );
-
-  const villaWorld =
-    cottage.localToWorld(villaP);
-
-  ch.position.set(
-    villaWorld.x,
-    H(villaWorld.x, villaWorld.z),
-    villaWorld.z
-  );
-
-  villaSetMode(false);
-}
-
-
-// ============================================================
-// 38. 楼层移动
-// ============================================================
-
-function villaMoveToLocal(villaP) {
-
-  const villaWorld =
-    cottage.localToWorld(villaP);
-
-  ch.position.x = villaWorld.x;
-  ch.position.z = villaWorld.z;
-}
-
-
-// ============================================================
-// 39. 按钮逻辑
-// ============================================================
-
-$('home').onclick = () => {
-
-  if (!insideCottage) {
-
-    villaEnter();
-
-    return;
-  }
-
-  const villaP = villaLocalPlayer();
-
-  if (!villaUpFloor) {
-
-    // 靠近楼梯
-    if (
-      villaP.x > 1.0 &&
-      villaP.z < .3
-    ) {
-
-      villaUpFloor = true;
-
-      villaFloor2.visible = true;
-
-      villaP.set(
-        1.35,
-        0,
-        1.15
-      );
-
-      villaMoveToLocal(villaP);
-
-      tone(523, .3, .06);
-
-      return;
-    }
-
-    // 靠近门
-    if (
-      villaP.z < -1.25 &&
-      Math.abs(villaP.x) < .9
-    ) {
-
-      villaExit();
-
-      return;
-    }
-
-    villaP.set(
+  // 室内入口
+  const insidePos=
+    new THREE.Vector3(
       0,
-      0,
+      .55,
       -1.35
     );
 
-    villaMoveToLocal(villaP);
-
-  } else {
-
-    // 二楼下楼
-    if (
-      villaP.x > .7 &&
-      villaP.z > .45
-    ) {
-
-      villaUpFloor = false;
-
-      villaFloor2.visible = false;
-
-      villaP.set(
-        1.35,
-        0,
-        -.9
-      );
-
-      villaMoveToLocal(villaP);
-
-      tone(392, .3, .06);
-
-      return;
-    }
-
-    villaP.set(
-      1.35,
-      0,
-      .8
+  const worldPos=
+    cottage.localToWorld(
+      insidePos
     );
 
-    villaMoveToLocal(villaP);
+
+  // 只在点击“进屋”时改变玩家位置
+  ch.position.set(
+    worldPos.x,
+    worldPos.y,
+    worldPos.z
+  );
+
+  setCottageMode(true);
+
+}
+
+
+// ============================================================
+// 40. 出屋
+// ============================================================
+
+function exitCottage(){
+
+  const outsidePos=
+    new THREE.Vector3(
+      0,
+      .48,
+      -3.45
+    );
+
+  const worldPos=
+    cottage.localToWorld(
+      outsidePos
+    );
+
+  const groundY=
+    H(
+      worldPos.x,
+      worldPos.z
+    );
+
+
+  ch.position.set(
+    worldPos.x,
+    groundY+.43,
+    worldPos.z
+  );
+
+  setCottageMode(false);
+
+}
+
+
+// ============================================================
+// 41. 室内按钮
+// ============================================================
+
+$('home').onclick=()=>{
+
+  if(!insideCottage){
+
+    enterCottage();
+
+    return;
   }
+
+
+  const p=cottageLocal();
+
+
+  // 一楼门口
+  if(
+    !upFloor &&
+    p.z<-1.30 &&
+    Math.abs(p.x)<.85
+  ){
+
+    exitCottage();
+
+    return;
+  }
+
+
+  // 上楼
+
+  if(
+    !upFloor &&
+    p.x>0.75 &&
+    p.z<1.1
+  ){
+
+    upFloor=true;
+
+    f2.visible=true;
+
+    const target=
+      cottage.localToWorld(
+        new THREE.Vector3(
+          1.10,
+          0,
+          1.25
+        )
+      );
+
+    ch.position.set(
+      target.x,
+      COTTAGE_Y+F2,
+      target.z
+    );
+
+    toast('来到二楼。');
+
+    return;
+  }
+
+
+  // 下楼
+
+  if(
+    upFloor &&
+    p.x>.65 &&
+    p.z<1.4
+  ){
+
+    upFloor=false;
+
+    f2.visible=false;
+
+    const target=
+      cottage.localToWorld(
+        new THREE.Vector3(
+          1.10,
+          0,
+          -1.25
+        )
+      );
+
+    ch.position.set(
+      target.x,
+      COTTAGE_Y+F1,
+      target.z
+    );
+
+    toast('回到一楼。');
+
+    return;
+  }
+
 };
 
 
 // ============================================================
-// 40. 室内移动限制
+// 42. 室内状态更新
+//
+// 注意：
+// 只有 insideCottage=true 才允许这里改变玩家位置。
 // ============================================================
 
-function villaUpdateInterior() {
+function updateCottageInterior(){
 
-  const villaP = villaLocalPlayer();
+  if(!insideCottage){
 
-  if (!insideCottage) {
+    const p=cottageLocal();
 
-    const villaNearDoor =
-      Math.abs(villaP.x) < 1.7 &&
-      villaP.z < -1.55 &&
-      villaP.z > -3.55;
+    const near=
+      Math.abs(p.x)<1.65 &&
+      p.z<-1.55 &&
+      p.z>-3.65;
 
-    $('home').style.display =
-      villaNearDoor ? 'block' : 'none';
+    $('home').style.display=
+      near?'block':'none';
 
-    $('home').textContent = '进屋';
+    $('home').textContent='进屋';
 
     return;
   }
 
 
+  // ========================================================
+  // 室内状态
+  // ========================================================
+
+  const p=cottageLocal();
+
+
+  // 室内边界
+
+  p.x=cl(
+    p.x,
+    -2.10,
+    2.10
+  );
+
+  p.z=cl(
+    p.z,
+    -1.72,
+    1.72
+  );
+
+
   // 一楼
-  if (!villaUpFloor) {
 
-    villaP.x = cl(
-      villaP.x,
-      -2.2,
-      2.2
-    );
+  if(!upFloor){
 
-    villaP.z = cl(
-      villaP.z,
-      -1.85,
-      1.85
-    );
+    if(
+      p.x>1.45 &&
+      p.z<.90 &&
+      p.z>-.95
+    ){
 
-    // 楼梯区域
-    if (
-      villaP.x > 1.5 &&
-      villaP.z < .75 &&
-      villaP.z > -1.75
-    ) {
+      p.x=1.45;
 
-      villaP.x = 1.5;
     }
 
   }
+
 
   // 二楼
-  else {
 
-    villaP.x = cl(
-      villaP.x,
-      -2.2,
-      2.2
-    );
+  else{
 
-    villaP.z = cl(
-      villaP.z,
-      -1.7,
-      1.75
-    );
-  }
+    if(
+      p.x>1.45 &&
+      p.z<1.20
+    ){
 
+      p.x=1.45;
 
-  const villaWorld =
-    cottage.localToWorld(villaP);
-
-  ch.position.copy(villaWorld);
-
-  ch.position.y =
-    COTTAGE_Y +
-    (villaUpFloor ? 3.05 : .43);
-
-
-  $('home').style.display = 'block';
-
-  if (villaUpFloor) {
-
-    $('home').textContent =
-      (
-        villaP.x > .7 &&
-        villaP.z > .4
-      )
-        ? '下楼'
-        : '去楼梯口';
-
-  } else {
-
-    if (
-      villaP.z < -1.25 &&
-      Math.abs(villaP.x) < .9
-    ) {
-
-      $('home').textContent = '出门';
-
-    } else if (
-      villaP.x > 1.0 &&
-      villaP.z < .3
-    ) {
-
-      $('home').textContent = '上楼';
-
-    } else {
-
-      $('home').textContent = '回到门口';
     }
+
   }
+
+
+  // 写回玩家位置
+  //
+  // 只有进入小屋以后才执行
+
+  const worldPos=
+    cottage.localToWorld(p);
+
+  ch.position.x=
+    worldPos.x;
+
+  ch.position.z=
+    worldPos.z;
+
+  ch.position.y=
+    COTTAGE_Y+
+    (upFloor?F2:F1);
+
+
+  $('home').style.display='block';
+
+
+  // 当前按钮文字
+
+  if(upFloor){
+
+    if(
+      p.x>.65 &&
+      p.z<1.4
+    ){
+
+      $('home').textContent='下楼';
+
+    }else{
+
+      $('home').textContent='去楼梯口';
+
+    }
+
+  }else{
+
+    if(
+      p.z<-1.30 &&
+      Math.abs(p.x)<.85
+    ){
+
+      $('home').textContent='出门';
+
+    }else if(
+      p.x>.75 &&
+      p.z<1.1
+    ){
+
+      $('home').textContent='上楼';
+
+    }else{
+
+      $('home').textContent='回到门口';
+
+    }
+
+  }
+
 }
 
 
 // ============================================================
-// 41. 外部动态
+// 43. 小屋动态
 // ============================================================
 
-function updCottage() {
+const cottageLight=new THREE.PointLight(
+  0xffb86b,
+  0,
+  13,
+  2
+);
 
-  // 夜晚别墅灯光
-  villaDoorLight.intensity =
-    .15 + .9 * night;
+cottageLight.position.set(
+  COTTAGE_X,
+  COTTAGE_Y+1.5,
+  COTTAGE_Z-1.8
+);
 
-  villaOutsideLight.intensity =
-    .35 * night;
+scene.add(
+  cottageLight
+);
 
-  villaLivingLight.intensity =
+
+function updCottage(){
+
+  // 外部夜间灯
+
+  cottageLamp.intensity=
+    1.5*night;
+
+  cottageLight.intensity=
+    .65*night;
+
+  cottageGlow.material.opacity=
+    .10+.90*night;
+
+
+  // 室内灯
+
+  interiorWarmLight.intensity=
     insideCottage
-      ? .8 + 1.2 * night
-      : 0;
+    ? 1.2+1.0*night
+    : 0;
 
-  villaBedroomLight.intensity =
-    insideCottage && villaUpFloor
-      ? .5 + .8 * night
-      : 0;
+  ceilingLamp.intensity=
+    insideCottage
+    ? .8+.7*night
+    : 0;
 
 
-  // 烟雾
-  const villaTime =
-    performance.now() / 1000;
+  // 烟
 
-  villaSmoke.forEach((villaQ, villaI) => {
+  const t=
+    performance.now()/1000;
 
-    const villaK =
-      (villaTime * .12 + villaI / 4) % 1;
+  smoke.forEach(
+    (s,i)=>{
 
-    villaQ.position.set(
-      1.72 + villaK * .55,
-      7.65 + villaK * 2.2,
-      .85
-    );
+      const k=
+        (t*.16+i/4)%1;
 
-    villaQ.scale.setScalar(
-      .45 + villaK * 1.25
-    );
+      s.position.set(
+        1.65+k*.55,
+        7.65+k*2.2,
+        .75
+      );
 
-    if (villaQ.material) {
+      s.scale.setScalar(
+        .45+k*1.35
+      );
 
-      villaQ.material.opacity =
-        .5 *
-        (1 - villaK) *
-        Math.min(1, villaK * 5);
+      if(s.material){
+
+        s.material.opacity=
+          .5*
+          (1-k)*
+          Math.min(
+            1,
+            k*5
+          );
+
+      }
+
     }
-  });
+  );
 
 
-  villaUpdateInterior();
+  // 室内逻辑
+
+  updateCottageInterior();
+
 }
 
 
 // ============================================================
-// 42. 碰撞 / 门口提示
+// 44. 外部提示
 // ============================================================
 
-let villaToastShown = false;
+let cottageToastShown=false;
 
-function checkCottage() {
 
-  if (insideCottage) return;
+function checkCottage(){
 
-  const villaP = villaLocalPlayer();
+  // 室内不处理外部提示
 
-  const villaNear =
-    Math.abs(villaP.x) < 1.7 &&
-    villaP.z < -1.55 &&
-    villaP.z > -3.55;
+  if(insideCottage){
 
-  $('home').style.display =
-    villaNear ? 'block' : 'none';
+    return;
+  }
 
-  $('home').textContent = '进屋';
 
-  if (
-    villaNear &&
-    !villaToastShown
-  ) {
+  const p=cottageLocal();
 
-    villaToastShown = true;
+  const near=
+    Math.abs(p.x)<1.65 &&
+    p.z<-1.55 &&
+    p.z>-3.65;
+
+
+  $('home').style.display=
+    near?'block':'none';
+
+  $('home').textContent='进屋';
+
+
+  if(
+    near &&
+    !cottageToastShown
+  ){
+
+    cottageToastShown=true;
 
     toast(
-      '这是你的海岛私人别墅。点击右下角「进屋」进入。'
+      '这是你的小别墅。点击右下角「进屋」进入。'
     );
+
   }
 
-  if (!villaNear) {
 
-    villaToastShown = false;
+  if(!near){
+
+    cottageToastShown=false;
+
   }
+
 }
 
 
 // ============================================================
-// 43. 初始状态
+// 45. 初始状态
 // ============================================================
 
-villaExterior.visible = true;
-villaInterior.visible = false;
-villaFloor2.visible = false;
+insideCottage=false;
+upFloor=false;
+inBath=false;
 
-$('home').style.display = 'none';
+interior.visible=false;
+
+cottageExterior.forEach(
+  obj=>{
+    obj.visible=true;
+  }
+);
 
 
 // ============================================================
-// END — COTTAGE V3.0
+// Cottage V3 END
 // ============================================================
+
+
 
  
 // ---------- memory garden ----------
