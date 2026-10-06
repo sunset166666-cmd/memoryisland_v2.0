@@ -223,6 +223,7 @@ const gT={value:0};
 const cloudM=new THREE.SpriteMaterial({map:glowT,transparent:true,opacity:.5,depthWrite:false,fog:false}),clouds=[];
 for(let i=0;i<9;i++){const c={a:rnd()*TAU,r:200+rnd()*80,y:70+rnd()*40,sp:.004+rnd()*.004,w:30+rnd()*20,p:[]};
  for(let k=0;k<3;k++){const q=new THREE.Sprite(cloudM);q.scale.set(c.w*(1.8-.4*(k%2)),c.w*.7,1);scene.add(q);c.p.push(q)}clouds.push(c)}
+
 // ---------- player's cottage : V2.0 villa edition ----------
 const cottage = new THREE.Group();
 
@@ -1824,7 +1825,7 @@ function checkCottage(){
     cottageToastShown=false;
   }
 }
-```
+
 
 
 // ---------- memory garden ----------
