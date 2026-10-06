@@ -225,17 +225,9 @@ for(let i=0;i<9;i++){const c={a:rnd()*TAU,r:200+rnd()*80,y:70+rnd()*40,sp:.004+r
  for(let k=0;k<3;k++){const q=new THREE.Sprite(cloudM);q.scale.set(c.w*(1.8-.4*(k%2)),c.w*.7,1);scene.add(q);c.p.push(q)}clouds.push(c)}
 
 
-
-// ============================================================
-// PLAYER'S COTTAGE — V3 ISLAND VILLA
-// 独立别墅系统
-// 原则：不接管主世界玩家移动系统
-// ============================================================
-
-
-// ============================================================
-// 1. 基础参数
-// ============================================================
+// ======================================================
+// PLAYER'S COTTAGE : V2.1 PRIVATE ISLAND VILLA
+// ======================================================
 
 const cottage = new THREE.Group();
 
@@ -243,736 +235,630 @@ const COTTAGE_X = -5.2;
 const COTTAGE_Z = 8.2;
 const COTTAGE_Y = H(COTTAGE_X, COTTAGE_Z);
 
-cottage.position.set(
-  COTTAGE_X,
-  COTTAGE_Y,
-  COTTAGE_Z
-);
-
+cottage.position.set(COTTAGE_X, COTTAGE_Y, COTTAGE_Z);
 cottage.rotation.y = -0.22;
-cottage.scale.set(1.65,1,1.65);
+cottage.scale.set(1.72, 1, 1.72);
 
 
-// ============================================================
-// 2. 工具
-// ============================================================
-
-function cottageMat(color, options={}){
-  return new THREE.MeshStandardMaterial(
-    Object.assign({
-      color:color,
-      roughness:.82
-    },options)
-  );
-}
-
-function cottagePart(
-  geometry,
-  material,
-  x,
-  y,
-  z,
-  parent=cottage
-){
-  const mesh=new THREE.Mesh(
-    geometry,
-    material
-  );
-
-  mesh.position.set(x,y,z);
-  mesh.castShadow=true;
-  mesh.receiveShadow=true;
-
-  parent.add(mesh);
-
-  return mesh;
-}
-
-
-// ============================================================
-// 3. 碰撞
-//
-// V3 特意不让 Cottage 接管主世界移动。
-// 这样不会再出现出生点卡墙 / 完全无法移动。
-// ============================================================
+// ======================================================
+// collision
+// ======================================================
 
 function inCot(x,z){
-  return false;
+  const dx=x-COTTAGE_X;
+  const dz=z-COTTAGE_Z;
+
+  const c=Math.cos(.22);
+  const sn=Math.sin(.22);
+
+  const lx=dx*c+dz*sn;
+  const lz=-dx*sn+dz*c;
+
+  return Math.abs(lx)<4.85&&Math.abs(lz)<4.05;
 }
 
 
-// ============================================================
-// 4. 外部建筑
-// ============================================================
+// ======================================================
+// materials
+// ======================================================
+
+function cottageMat(c,o={}){
+  return new THREE.MeshStandardMaterial(
+    Object.assign({
+      color:c,
+      roughness:.86
+    },o)
+  );
+}
+
+function cottagePart(geo,material,x,y,z){
+  const m=new THREE.Mesh(geo,material);
+
+  m.position.set(x,y,z);
+
+  m.castShadow=true;
+  m.receiveShadow=true;
+
+  cottage.add(m);
+
+  return m;
+}
 
 
-// ---------- 地台 ----------
+// ======================================================
+// exterior main structure
+// ======================================================
 
+// 木质地台
 cottagePart(
-  new THREE.BoxGeometry(6.1,.24,5.15),
-  cottageMat(0x805840),
+  new THREE.BoxGeometry(6.05,.24,5.05),
+  cottageMat(0x8b6047),
   0,.12,0
 );
 
+// 主地板
 cottagePart(
-  new THREE.BoxGeometry(5.65,.16,4.7),
-  cottageMat(0xc99662),
-  0,.31,0
+  new THREE.BoxGeometry(5.45,.18,4.45),
+  cottageMat(0xc99562),
+  0,.32,0
+);
+
+// 地板装饰边
+cottagePart(
+  new THREE.BoxGeometry(5.55,.08,4.55),
+  cottageMat(0xe3bd83),
+  0,.43,0
 );
 
 
-// ---------- 外墙 ----------
+// ======================================================
+// first floor exterior walls
+// ======================================================
 
-const villaWall=cottageMat(
-  0xe8d3b4
+const wallMat=cottageMat(0xe8d2ad);
+
+// 正面门两侧墙体
+cottagePart(
+  new THREE.BoxGeometry(1.72,2.65,.18),
+  wallMat,
+  -1.64,1.62,-2.08
 );
-
-
-// 一楼前墙：左右两块，中间留门
 
 cottagePart(
-  new THREE.BoxGeometry(1.75,2.65,.20),
-  villaWall,
-  -1.62,1.65,-2.12
+  new THREE.BoxGeometry(1.72,2.65,.18),
+  wallMat,
+  1.64,1.62,-2.08
 );
-
-cottagePart(
-  new THREE.BoxGeometry(1.75,2.65,.20),
-  villaWall,
-  1.62,1.65,-2.12
-);
-
 
 // 后墙
-
 cottagePart(
-  new THREE.BoxGeometry(5.2,2.65,.20),
-  villaWall,
-  0,1.65,2.12
+  new THREE.BoxGeometry(5.1,2.65,.18),
+  wallMat,
+  0,1.62,2.08
 );
-
 
 // 左右墙
-
 cottagePart(
-  new THREE.BoxGeometry(.20,2.65,4.1),
-  villaWall,
-  -2.52,1.65,0
-);
-
-cottagePart(
-  new THREE.BoxGeometry(.20,2.65,4.1),
-  villaWall,
-  2.52,1.65,0
-);
-
-
-// ============================================================
-// 5. 一楼落地窗
-// ============================================================
-
-const glassMat=new THREE.MeshPhysicalMaterial({
-  color:0xbfeaf5,
-  transparent:true,
-  opacity:.24,
-  roughness:.08,
-  metalness:.02,
-  transmission:.65,
-  thickness:.04,
-  side:THREE.DoubleSide
-});
-
-const frameMat=cottageMat(0x704b3b);
-
-
-// 前面两块大型玻璃
-
-for(const sx of[-1.15,1.15]){
-
-  cottagePart(
-    new THREE.BoxGeometry(
-      1.55,
-      1.65,
-      .055
-    ),
-    glassMat,
-    sx,
-    1.55,
-    -2.235
-  );
-
-  // 左右框
-
-  cottagePart(
-    new THREE.BoxGeometry(.075,1.72,.10),
-    frameMat,
-    sx-.79,
-    1.55,
-    -2.27
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(.075,1.72,.10),
-    frameMat,
-    sx+.79,
-    1.55,
-    -2.27
-  );
-
-  // 上下框
-
-  cottagePart(
-    new THREE.BoxGeometry(1.65,.075,.10),
-    frameMat,
-    sx,
-    2.40,
-    -2.27
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(1.65,.075,.10),
-    frameMat,
-    sx,
-    .70,
-    -2.27
-  );
-
-  // 中间竖框
-
-  cottagePart(
-    new THREE.BoxGeometry(.045,1.62,.07),
-    frameMat,
-    sx,
-    1.55,
-    -2.29
-  );
-
-}
-
-
-// ============================================================
-// 6. 二楼
-// ============================================================
-
-cottagePart(
-  new THREE.BoxGeometry(5.2,2.5,.20),
-  villaWall,
-  0,4.28,2.12
+  new THREE.BoxGeometry(.18,2.65,4.0),
+  wallMat,
+  -2.46,1.62,0
 );
 
 cottagePart(
-  new THREE.BoxGeometry(.20,2.5,4.1),
-  villaWall,
-  -2.52,4.28,0
+  new THREE.BoxGeometry(.18,2.65,4.0),
+  wallMat,
+  2.46,1.62,0
+);
+
+
+// ======================================================
+// second floor
+// ======================================================
+
+cottagePart(
+  new THREE.BoxGeometry(5.1,2.65,.18),
+  wallMat,
+  0,4.27,-2.08
 );
 
 cottagePart(
-  new THREE.BoxGeometry(.20,2.5,4.1),
-  villaWall,
-  2.52,4.28,0
+  new THREE.BoxGeometry(5.1,2.65,.18),
+  wallMat,
+  0,4.27,2.08
 );
-
-
-// ---------- 二楼正面大窗 ----------
-
-for(const sx of[-1.18,1.18]){
-
-  cottagePart(
-    new THREE.BoxGeometry(
-      1.55,
-      1.35,
-      .055
-    ),
-    glassMat,
-    sx,
-    4.30,
-    -2.235
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(.075,1.42,.10),
-    frameMat,
-    sx-.79,
-    4.30,
-    -2.27
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(.075,1.42,.10),
-    frameMat,
-    sx+.79,
-    4.30,
-    -2.27
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(1.65,.075,.10),
-    frameMat,
-    sx,
-    5.00,
-    -2.27
-  );
-
-  cottagePart(
-    new THREE.BoxGeometry(1.65,.075,.10),
-    frameMat,
-    sx,
-    3.60,
-    -2.27
-  );
-
-}
-
-
-// ============================================================
-// 7. 二楼楼板
-// ============================================================
 
 cottagePart(
-  new THREE.BoxGeometry(6.0,.20,5.0),
-  cottageMat(0x815b43),
-  0,2.92,0
+  new THREE.BoxGeometry(.18,2.65,4.0),
+  wallMat,
+  -2.46,4.27,0
+);
+
+cottagePart(
+  new THREE.BoxGeometry(.18,2.65,4.0),
+  wallMat,
+  2.46,4.27,0
 );
 
 
-// ============================================================
-// 8. 屋顶
-// ============================================================
-
-const roofMat=cottageMat(
-  0x725467,
-  {roughness:.9}
+// 二楼楼板
+cottagePart(
+  new THREE.BoxGeometry(5.9,.18,4.9),
+  cottageMat(0x825b45),
+  0,2.94,0
 );
+
+
+// ======================================================
+// roof
+// ======================================================
+
+const roofMat=cottageMat(0x705265);
 
 const roofA=cottagePart(
-  new THREE.BoxGeometry(3.25,.24,4.95),
+  new THREE.BoxGeometry(3.15,.22,4.85),
   roofMat,
-  -1.50,
-  6.22,
-  0
+  -1.45,6.25,0
 );
 
-roofA.rotation.z=.47;
-
+roofA.rotation.z=.48;
 
 const roofB=cottagePart(
-  new THREE.BoxGeometry(3.25,.24,4.95),
+  new THREE.BoxGeometry(3.15,.22,4.85),
   roofMat,
-  1.50,
-  6.22,
-  0
+  1.45,6.25,0
 );
 
-roofB.rotation.z=-.47;
+roofB.rotation.z=-.48;
 
 
-// 屋顶横梁
-
+// 屋顶顶部
 cottagePart(
-  new THREE.CylinderGeometry(
-    .12,
-    .12,
-    5.05,
-    10
-  ),
-  cottageMat(0x604337),
-  0,
-  6.95,
-  0
+  new THREE.CylinderGeometry(.11,.11,4.95,8),
+  cottageMat(0x654535),
+  0,6.97,0
 ).rotation.z=Math.PI/2;
 
 
-// ============================================================
-// 9. 屋檐
-// ============================================================
-
-for(const z of[-2.35,2.35]){
+// 屋檐
+for(const z of[-2.28,2.28]){
 
   cottagePart(
-    new THREE.BoxGeometry(
-      5.65,
-      .14,
-      .30
-    ),
-    cottageMat(0x5d4033),
-    0,
-    2.91,
-    z
+    new THREE.BoxGeometry(5.55,.14,.3),
+    cottageMat(0x624333),
+    0,2.92,z
   );
 
   cottagePart(
-    new THREE.BoxGeometry(
-      5.65,
-      .14,
-      .30
-    ),
-    cottageMat(0x5d4033),
-    0,
-    5.50,
-    z
+    new THREE.BoxGeometry(5.55,.14,.3),
+    cottageMat(0x624333),
+    0,5.5,z
   );
 }
 
 
-// ============================================================
-// 10. 门
-// ============================================================
+// ======================================================
+// door
+// ======================================================
 
-const doorGroup=new THREE.Group();
+const doorMat=cottageMat(0x704b3b);
 
-doorGroup.position.set(
-  0,
-  0,
-  -2.23
-);
+const cottageDoor=new THREE.Group();
 
-const doorMat=cottageMat(
-  0x654238
-);
+cottageDoor.position.set(0,0,-2.18);
 
 const doorPanel=new THREE.Mesh(
-  new THREE.BoxGeometry(
-    1.05,
-    1.92,
-    .08
-  ),
+  new THREE.BoxGeometry(1.05,1.9,.08),
   doorMat
 );
 
-doorPanel.position.set(
-  0,
-  1.28,
-  0
-);
-
+doorPanel.position.set(.52,1.30,0);
 doorPanel.castShadow=true;
 
-doorGroup.add(
-  doorPanel
-);
-
-
-// 门上的小玻璃
-
-const doorGlass=new THREE.Mesh(
-  new THREE.BoxGeometry(
-    .58,
-    .68,
-    .025
-  ),
-  new THREE.MeshPhysicalMaterial({
-    color:0xbfeaf5,
-    transparent:true,
-    opacity:.35,
-    roughness:.1,
-    transmission:.4
-  })
-);
-
-doorGlass.position.set(
-  0,
-  1.55,
-  -.055
-);
-
-doorGroup.add(
-  doorGlass
-);
+cottageDoor.add(doorPanel);
 
 
 // 门把手
-
-const knob=new THREE.Mesh(
-  new THREE.SphereGeometry(
-    .07,
-    10,
-    8
-  ),
-  cottageMat(
-    0xe8b96b,
-    {
-      metalness:.55,
-      roughness:.35
-    }
-  )
+const doorKnob=new THREE.Mesh(
+  new THREE.SphereGeometry(.07,8,6),
+  new THREE.MeshStandardMaterial({
+    color:0xe5b86b,
+    metalness:.5,
+    roughness:.4
+  })
 );
 
-knob.position.set(
-  .38,
-  1.25,
-  -.08
-);
+doorKnob.position.set(.83,1.30,-.07);
 
-doorGroup.add(
-  knob
-);
+cottageDoor.add(doorKnob);
 
-cottage.add(doorGroup);
+cottage.add(cottageDoor);
 
 
 // 门框
-
-for(const sx of[-.57,.57]){
+for(const sx of[-.55,.55]){
 
   cottagePart(
-    new THREE.BoxGeometry(
-      .12,
-      2.08,
-      .14
-    ),
-    frameMat,
-    sx,
-    1.34,
-    -2.26
+    new THREE.BoxGeometry(.12,2.05,.14),
+    cottageMat(0x5d4035),
+    sx,1.34,-2.20
   );
-
 }
 
 cottagePart(
-  new THREE.BoxGeometry(
-    1.25,
-    .12,
-    .14
-  ),
-  frameMat,
-  0,
-  2.36,
-  -2.26
+  new THREE.BoxGeometry(1.22,.12,.14),
+  cottageMat(0x5d4035),
+  0,2.33,-2.20
 );
 
 
-// ============================================================
-// 11. 阳台
-// ============================================================
+// ======================================================
+// huge glass windows
+// ======================================================
 
-cottagePart(
-  new THREE.BoxGeometry(
-    2.45,
-    .18,
-    1.25
-  ),
-  cottageMat(0xb27a51),
-  0,
-  .38,
-  -2.78
+const glassMat=new THREE.MeshPhysicalMaterial({
+  color:0xbfe9f2,
+  transparent:true,
+  opacity:.25,
+  roughness:.08,
+  metalness:.05,
+  transmission:.45,
+  thickness:.05,
+  side:THREE.DoubleSide
+});
+
+const windowFrameMat=cottageMat(0x704b3b);
+
+
+// 一楼大落地窗
+for(const sx of[-1.35,1.35]){
+
+  cottagePart(
+    new THREE.BoxGeometry(1.38,1.65,.055),
+    glassMat,
+    sx,1.62,-2.18
+  );
+
+  // 左右窗框
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.7,.11),
+    windowFrameMat,
+    sx-.70,1.62,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.7,.11),
+    windowFrameMat,
+    sx+.70,1.62,-2.23
+  );
+
+  // 上下
+  cottagePart(
+    new THREE.BoxGeometry(1.48,.075,.11),
+    windowFrameMat,
+    sx,2.47,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.48,.075,.11),
+    windowFrameMat,
+    sx,.77,-2.23
+  );
+
+  // 中间竖框
+  cottagePart(
+    new THREE.BoxGeometry(.045,1.58,.08),
+    windowFrameMat,
+    sx,1.62,-2.26
+  );
+}
+
+
+// 二楼窗户
+for(const sx of[-1.35,1.35]){
+
+  cottagePart(
+    new THREE.BoxGeometry(1.4,1.38,.055),
+    glassMat,
+    sx,4.32,-2.18
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.45,.11),
+    windowFrameMat,
+    sx-.71,4.32,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.075,1.45,.11),
+    windowFrameMat,
+    sx+.71,4.32,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.5,.075,.11),
+    windowFrameMat,
+    sx,5.04,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(1.5,.075,.11),
+    windowFrameMat,
+    sx,3.60,-2.23
+  );
+
+  cottagePart(
+    new THREE.BoxGeometry(.045,1.32,.08),
+    windowFrameMat,
+    sx,4.32,-2.26
+  );
+}
+
+
+// ======================================================
+// curtains
+// ======================================================
+
+const curtainMat=cottageMat(
+  0xf1c9d7,
+  {
+    roughness:.95
+  }
 );
 
-
-// 阳台柱
-
-for(const x of[-1.05,1.05]){
+for(const sx of[-1.35,1.35]){
 
   cottagePart(
-    new THREE.CylinderGeometry(
-      .08,
-      .10,
-      1.35,
-      8
-    ),
-    cottageMat(0x76503e),
-    x,
-    .88,
-    -3.05
+    new THREE.BoxGeometry(.28,1.62,.12),
+    curtainMat,
+    sx-.68,1.62,-2.30
   );
 
+  cottagePart(
+    new THREE.BoxGeometry(.28,1.62,.12),
+    curtainMat,
+    sx+.68,1.62,-2.30
+  );
 }
 
 
-// 栏杆
-
-for(const x of[-.7,0,.7]){
-
-  cottagePart(
-    new THREE.CylinderGeometry(
-      .045,
-      .045,
-      .72,
-      6
-    ),
-    frameMat,
-    x,
-    .77,
-    -3.30
-  );
-
-}
-
-cottagePart(
-  new THREE.BoxGeometry(
-    2.25,
-    .09,
-    .09
-  ),
-  frameMat,
-  0,
-  1.12,
-  -3.30
-);
-
-
-// ============================================================
-// 12. 门口台阶
-// ============================================================
-
-for(let i=0;i<2;i++){
+// 二楼窗帘
+for(const sx of[-1.35,1.35]){
 
   cottagePart(
-    new THREE.BoxGeometry(
-      1.55+i*.25,
-      .16,
-      .55
-    ),
-    cottageMat(0x956447),
-    0,
-    .20+i*.16,
-    -3.18-i*.28
+    new THREE.BoxGeometry(.25,1.38,.12),
+    curtainMat,
+    sx-.71,4.32,-2.30
   );
 
+  cottagePart(
+    new THREE.BoxGeometry(.25,1.38,.12),
+    curtainMat,
+    sx+.71,4.32,-2.30
+  );
 }
 
 
-// ============================================================
-// 13. 花箱
-// ============================================================
+// ======================================================
+// flower boxes
+// ======================================================
 
-for(const sx of[-1.15,1.15]){
+for(const sx of[-1.35,1.35]){
 
   cottagePart(
-    new THREE.BoxGeometry(
-      1.45,
-      .18,
-      .28
-    ),
-    cottageMat(0x684537),
-    sx,
-    .63,
-    -2.37
+    new THREE.BoxGeometry(1.4,.17,.24),
+    cottageMat(0x6b4939),
+    sx,1.02,-2.30
   );
 
-  for(let i=0;i<6;i++){
-
-    const colors=[
-      0xff9fb5,
-      0xffe28c,
-      0xc8b5ff
-    ];
+  for(let k=0;k<6;k++){
 
     cottagePart(
-      new THREE.SphereGeometry(
-        .085,
-        7,
-        5
-      ),
-      cottageMat(
-        colors[i%3],
-        {roughness:1}
-      ),
-      sx-.55+i*.22,
-      .77+(i%2)*.05,
-      -2.37
+      new THREE.SphereGeometry(.075,7,5),
+      cottageMat([
+        0xff9fb5,
+        0xffe08a,
+        0xc7b0ff
+      ][k%3]),
+      sx-.55+k*.22,
+      1.16+(k%2)*.04,
+      -2.30
     );
-
   }
-
 }
 
 
-// ============================================================
-// 14. 烟囱
-// ============================================================
+// ======================================================
+// chimney
+// ======================================================
 
 cottagePart(
-  new THREE.BoxGeometry(
-    .58,
-    2.0,
-    .58
-  ),
-  cottageMat(0xb9b1a2),
-  1.65,
-  6.45,
-  .75
+  new THREE.BoxGeometry(.55,2.0,.55),
+  cottageMat(0xb9b1a2,{roughness:1}),
+  1.75,6.5,.9
 );
 
 cottagePart(
-  new THREE.BoxGeometry(
-    .72,
-    .15,
-    .72
-  ),
-  cottageMat(0x654535),
-  1.65,
-  7.48,
-  .75
+  new THREE.BoxGeometry(.7,.14,.7),
+  cottageMat(0x6b4939),
+  1.75,7.52,.9
 );
 
 
-// ============================================================
-// 15. 烟雾
-// ============================================================
-
+// 烟
 const smoke=[];
 
 for(let i=0;i<4;i++){
 
-  const s=spr(
-    glowT,
-    0xdedede,
-    1,
-    0
-  );
+  const q=spr(glowT,0xdedede,1,0);
 
-  scene.remove(s);
-  cottage.add(s);
-  smoke.push(s);
+  scene.remove(q);
 
+  cottage.add(q);
+
+  smoke.push(q);
 }
 
 
-// ============================================================
-// 16. 外部灯光
-// ============================================================
+// ======================================================
+// ground balcony
+// ======================================================
+
+cottagePart(
+  new THREE.BoxGeometry(2.15,.16,1.05),
+  cottageMat(0xb27a51),
+  0,.40,-2.65
+);
+
+for(const x of[-.9,0,.9]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(.045,.045,.72,6),
+    cottageMat(0x704b3b),
+    x,.76,-3.02
+  );
+}
+
+cottagePart(
+  new THREE.BoxGeometry(2.05,.09,.09),
+  cottageMat(0x704b3b),
+  0,1.08,-3.02
+);
+
+
+// 阳台两侧柱子
+for(const x of[-1.0,1.0]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(.07,.09,1.15,6),
+    cottageMat(0x80563e),
+    x,.86,-2.72
+  );
+}
+
+
+// 门口台阶
+cottagePart(
+  new THREE.BoxGeometry(1.5,.16,.65),
+  cottageMat(0x9a6849),
+  0,.35,-3.15
+);
+
+
+// ======================================================
+// SECOND FLOOR BALCONY
+// ======================================================
+
+cottagePart(
+  new THREE.BoxGeometry(3.2,.16,1.35),
+  cottageMat(0xb27a51),
+  0,3.03,-2.78
+);
+
+
+// 二楼栏杆
+for(const x of[-1.45,-.72,0,.72,1.45]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(.045,.045,.85,6),
+    cottageMat(0x704b3b),
+    x,3.48,-3.40
+  );
+}
+
+cottagePart(
+  new THREE.BoxGeometry(3.05,.10,.10),
+  cottageMat(0x704b3b),
+  0,3.87,-3.40
+);
+
+
+// 阳台两边立柱
+for(const x of[-1.55,1.55]){
+
+  cottagePart(
+    new THREE.CylinderGeometry(.08,.10,1.25,6),
+    cottageMat(0x80563e),
+    x,3.55,-2.82
+  );
+}
+
+
+// ======================================================
+// exterior lighting
+// ======================================================
 
 const cottageLamp=new THREE.PointLight(
   0xffc56e,
   0,
-  9,
+  8,
   2
 );
 
 cottageLamp.position.set(
-  0,
-  2.25,
-  -2.62
+  0,2.35,-2.65
 );
 
-cottage.add(
-  cottageLamp
-);
+cottage.add(cottageLamp);
 
 
 const cottageGlow=spr(
   glowT,
   0xffc56e,
-  1.5,
+  1.7,
   0
 );
 
 scene.remove(cottageGlow);
 
 cottageGlow.position.set(
-  0,
-  2.25,
-  -2.63
+  0,2.35,-2.62
 );
 
-cottage.add(
-  cottageGlow
-);
+cottage.add(cottageGlow);
 
 
-// ============================================================
-// 17. 室内
-// ============================================================
+// 两侧壁灯
+const wallLamps=[];
+
+for(const sx of[-2.18,2.18]){
+
+  const wl=new THREE.PointLight(
+    0xffd18a,
+    0,
+    4,
+    2
+  );
+
+  wl.position.set(
+    sx,1.8,-2.35
+  );
+
+  cottage.add(wl);
+
+  wallLamps.push(wl);
+
+  const wg=spr(
+    glowT,
+    0xffd18a,
+    .7,
+    0
+  );
+
+  scene.remove(wg);
+
+  wg.position.set(
+    sx,1.8,-2.38
+  );
+
+  cottage.add(wg);
+
+  wallLamps.push(wg);
+}
+
+
+// ======================================================
+// INTERIOR
+// ======================================================
 
 const interior=new THREE.Group();
 
@@ -982,52 +868,38 @@ const F2=3.05;
 const f1=new THREE.Group();
 const f2=new THREE.Group();
 
-interior.add(
-  f1,
-  f2
-);
+interior.add(f1,f2);
 
 f2.visible=false;
 
-
-// ---------- 状态 ----------
-
-let insideCottage=false;
 let upFloor=false;
 let inBath=false;
 let lastHs='';
 
 
-// ============================================================
-// 18. 室内建模工具
-// ============================================================
+// ======================================================
+// interior helpers
+// ======================================================
 
 const B=(
   w,h,d,
   x,y,z,
-  color,
-  parent=f1,
-  options={}
+  c,
+  g=f1,
+  o={}
 )=>{
 
   const m=new THREE.Mesh(
-    new THREE.BoxGeometry(
-      w,h,d
-    ),
-    cottageMat(
-      color,
-      options
-    )
+    new THREE.BoxGeometry(w,h,d),
+    cottageMat(c,o)
   );
 
-  m.position.set(
-    x,y,z
-  );
+  m.position.set(x,y,z);
 
   m.castShadow=true;
   m.receiveShadow=true;
 
-  parent.add(m);
+  g.add(m);
 
   return m;
 };
@@ -1036,32 +908,24 @@ const B=(
 const Cy=(
   rt,rb,h,
   x,y,z,
-  color,
-  parent=f1,
-  options={}
+  c,
+  g=f1,
+  o={}
 )=>{
 
   const m=new THREE.Mesh(
     new THREE.CylinderGeometry(
-      rt,
-      rb,
-      h,
-      12
+      rt,rb,h,12
     ),
-    cottageMat(
-      color,
-      options
-    )
+    cottageMat(c,o)
   );
 
-  m.position.set(
-    x,y,z
-  );
+  m.position.set(x,y,z);
 
   m.castShadow=true;
   m.receiveShadow=true;
 
-  parent.add(m);
+  g.add(m);
 
   return m;
 };
@@ -1070,756 +934,800 @@ const Cy=(
 const A=(
   w,h,d,
   x,y,z,
-  color,
-  options={}
+  c,o
 )=>
   B(
     w,h,d,
-    x,
-    F1+y,
-    z,
-    color,
+    x,F1+y,z,
+    c,
     f1,
-    options
+    o
   );
 
 
 const U=(
   w,h,d,
   x,y,z,
-  color,
-  options={}
+  c,o
 )=>
   B(
     w,h,d,
-    x,
-    F2+y,
-    z,
-    color,
+    x,F2+y,z,
+    c,
     f2,
-    options
+    o
   );
 
 
-// ============================================================
-// 19. 一楼地板
-// ============================================================
+// ======================================================
+// interior floor
+// ======================================================
 
 B(
-  5.0,
-  .08,
-  3.95,
-  0,
-  .39,
-  0,
-  0xd5a46d,
+  5.0,.08,3.95,
+  0,.39,0,
+  0xd4a06d,
   interior
 );
 
 
-// ============================================================
-// 20. 室内墙
-// ============================================================
+// ======================================================
+// interior walls
+// ======================================================
+
+for(const[g,y]of[
+  [f1,1.68],
+  [f2,4.275]
+]){
+
+  B(
+    5.0,2.45,.1,
+    0,y,1.98,
+    0xf0dfc6,
+    g
+  );
+
+  B(
+    .1,2.45,3.9,
+    -2.42,y,0,
+    0xf0dfc6,
+    g
+  );
+
+  B(
+    .1,2.45,3.9,
+    2.42,y,0,
+    0xf0dfc6,
+    g
+  );
+
+  if(g===f2){
+
+    B(
+      5.0,2.45,.1,
+      0,y,-1.98,
+      0xf0dfc6,
+      g
+    );
+
+  }else{
+
+    // 正面墙保留门洞
+    B(
+      1.95,2.45,.1,
+      -1.53,y,-1.98,
+      0xf0dfc6,
+      g
+    );
+
+    B(
+      1.95,2.45,.1,
+      1.53,y,-1.98,
+      0xf0dfc6,
+      g
+    );
+  }
+}
+
+
+// ======================================================
+// second floor
+// ======================================================
 
 B(
-  5.0,
-  2.45,
-  .10,
-  0,
-  1.68,
-  1.98,
-  0xf0dfc6,
-  interior
+  3.95,.2,3.95,
+  -.425,2.95,0,
+  0xc99562,
+  f2
 );
 
 B(
-  .10,
-  2.45,
-  3.9,
-  -2.42,
-  1.68,
-  0,
-  0xf0dfc6,
-  interior
-);
-
-B(
-  .10,
-  2.45,
-  3.9,
-  2.42,
-  1.68,
-  0,
-  0xf0dfc6,
-  interior
-);
-
-
-// 正面墙只保留两侧
-
-B(
-  1.9,
-  2.45,
-  .10,
-  -1.52,
-  1.68,
-  -1.98,
-  0xf0dfc6,
-  interior
-);
-
-B(
-  1.9,
-  2.45,
-  .10,
-  1.52,
-  1.68,
-  -1.98,
-  0xf0dfc6,
-  interior
-);
-
-
-// ============================================================
-// 21. 二楼
-// ============================================================
-
-B(
-  4.0,
-  .20,
-  3.95,
-  -.35,
-  2.95,
-  0,
+  .85,.2,1.0,
+  1.975,2.95,1.4,
   0xc99562,
   f2
 );
 
 
-// 二楼后墙
-
-B(
-  5.0,
-  2.45,
-  .10,
-  0,
-  4.28,
-  1.98,
-  0xf0dfc6,
-  f2
-);
-
-
-// 二楼侧墙
-
-B(
-  .10,
-  2.45,
-  3.9,
-  -2.42,
-  4.28,
-  0,
-  0xf0dfc6,
-  f2
-);
-
-B(
-  .10,
-  2.45,
-  3.9,
-  2.42,
-  4.28,
-  0,
-  0xf0dfc6,
-  f2
-);
-
-
-// ============================================================
-// 22. 楼梯
-// ============================================================
+// ======================================================
+// stairs
+// ======================================================
 
 for(let i=0;i<12;i++){
 
-  const h=(i+1)*.22;
+  const h=(i+1)*.218;
 
   B(
-    .82,
-    h,
-    .20,
-    1.85,
+    .78,h,.2,
+    1.98,
     F1+h/2,
-    -1.45+i*.20,
+    -1.45+i*.2,
     0xb27a51,
     f1
   );
-
 }
 
-
-// 扶手
-
 U(
-  .05,
-  .06,
-  2.5,
-  1.45,
-  .95,
-  -.35,
+  .05,.06,2.5,
+  1.55,.95,-.35,
   0x704b3b
 );
 
 for(const z of[-1.55,-.35,.85]){
 
   U(
-    .05,
-    .95,
-    .05,
-    1.45,
-    .475,
-    z,
+    .05,.95,.05,
+    1.55,.475,z,
     0x704b3b
   );
-
 }
 
 
-// ============================================================
-// 23. 客厅地毯
-// ============================================================
+// ======================================================
+// living room
+// ======================================================
 
+// 地毯
 A(
-  2.35,
-  .035,
-  1.55,
-  -.70,
-  .02,
-  -.45,
-  0xdca9b0,
+  2.2,.035,1.5,
+  -.7,.02,-.5,
+  0xdba6a9,
   {roughness:1}
 );
 
 
-// ============================================================
-// 24. 沙发
-// ============================================================
-
+// 沙发
 A(
-  .92,
-  .45,
-  1.70,
-  -1.78,
-  .24,
-  -.45,
-  0x8fa5b5
+  .9,.42,1.75,
+  -1.75,.23,-.5,
+  0x8fa5b5,
+  {roughness:.95}
 );
 
 A(
-  .22,
-  .72,
-  1.70,
-  -2.20,
-  .58,
-  -.45,
-  0x7890a2
+  .22,.7,1.75,
+  -2.2,.58,-.5,
+  0x7d93a3,
+  {roughness:.95}
 );
 
 
-// 靠枕
-
-for(const z of[-.92,.05]){
+// 沙发扶手
+for(const z of[-1.18,.18]){
 
   A(
-    .30,
-    .28,
-    .30,
-    -1.68,
-    .58,
-    z,
-    0xd9b5bb,
-    {roughness:1}
+    .42,.5,.2,
+    -1.75,.38,z,
+    0x8198aa
   );
-
 }
 
 
-// ============================================================
-// 25. 茶几
-// ============================================================
-
+// 茶几
 A(
-  1.05,
-  .12,
-  .65,
-  -.65,
-  .40,
-  -.45,
+  1.0,.12,.62,
+  -.65,.38,-.48,
   0x8b6247
 );
 
-for(const x of[-.40,.40]){
+for(const x of[-.38,.38]){
+
   for(const z of[-.22,.22]){
 
     A(
-      .07,
-      .42,
-      .07,
+      .07,.4,.07,
       -.65+x,
-      .20,
-      -.45+z,
-      0x684638
+      .18,
+      -.48+z,
+      0x6f4b39
     );
-
   }
 }
 
 
-// ============================================================
-// 26. 电视柜
-// ============================================================
+// 茶杯
+Cy(
+  .07,.06,.07,
+  -.65,.50,-.48,
+  0xf3d8dc,
+  f1
+);
+
+
+// ======================================================
+// TV wall
+// ======================================================
 
 A(
-  1.55,
-  .45,
-  .38,
-  .82,
-  .23,
-  1.60,
-  0x927254
+  1.5,.45,.38,
+  .85,.23,1.65,
+  0x9a7a5a
 );
 
 A(
-  1.35,
-  .72,
-  .06,
-  .82,
-  1.00,
-  1.42,
-  0x24242b,
-  {
-    roughness:.2,
-    metalness:.2
-  }
+  1.3,.72,.06,
+  .85,1.0,1.45,
+  0x25232c,
+  {roughness:.25,metalness:.2}
 );
 
 A(
-  1.12,
-  .52,
-  .012,
-  .82,
-  1.00,
-  1.385,
-  0x405675,
+  1.12,.52,.012,
+  .85,1.0,1.41,
+  0x384b68,
   {
     roughness:.2,
-    emissive:0x253b5b,
+    emissive:0x233b5b,
     emissiveIntensity:.5
   }
 );
 
 
-// ============================================================
-// 27. 钢琴区
-// ============================================================
+// ======================================================
+// floor lamp
+// ======================================================
 
-const piano=new THREE.Group();
+const floorLamp=new THREE.Group();
 
-function pianoBox(
-  w,h,d,x,y,z,color
-){
-
-  const m=new THREE.Mesh(
-    new THREE.BoxGeometry(
-      w,h,d
-    ),
-    cottageMat(color)
-  );
-
-  m.position.set(
-    x,y,z
-  );
-
-  m.castShadow=true;
-
-  piano.add(m);
-
-}
-
-
-pianoBox(
-  1.35,
-  1.20,
-  .42,
-  0,.60,0,
-  0x4e3b43
+const lampPole=new THREE.Mesh(
+  new THREE.CylinderGeometry(.035,.045,1.5,8),
+  cottageMat(0x624b45)
 );
 
-pianoBox(
-  1.42,
-  .08,
-  .48,
-  0,1.24,0,
-  0x684d55
+lampPole.position.y=.75;
+
+floorLamp.add(lampPole);
+
+
+const lampShade=new THREE.Mesh(
+  new THREE.ConeGeometry(
+    .28,.42,12,1,true
+  ),
+  cottageMat(
+    0xffe1bd,
+    {
+      emissive:0xffb65e,
+      emissiveIntensity:.25,
+      side:THREE.DoubleSide
+    }
+  )
 );
 
-pianoBox(
-  1.30,
-  .06,
-  .26,
-  0,.78,-.30,
-  0x4e3b43
+lampShade.position.y=1.55;
+
+floorLamp.add(lampShade);
+
+
+const floorLampLight=new THREE.PointLight(
+  0xffc56e,
+  0,
+  4,
+  2
 );
 
-pianoBox(
-  1.12,
-  .05,
-  .22,
-  0,.82,-.30,
-  0xf6efe4
+floorLampLight.position.y=1.4;
+
+floorLamp.add(floorLampLight);
+
+floorLamp.position.set(
+  -.2,F1,.85
 );
+
+f1.add(floorLamp);
+
+
+// ======================================================
+// plant
+// ======================================================
+
+const plant=new THREE.Group();
+
+const plantPot=new THREE.Mesh(
+  new THREE.CylinderGeometry(
+    .22,.18,.32,12
+  ),
+  cottageMat(0xc47e62)
+);
+
+plantPot.position.y=.16;
+
+plant.add(plantPot);
+
 
 for(let i=0;i<7;i++){
 
-  pianoBox(
-    .05,
-    .04,
-    .12,
-    -.45+i*.15,
-    .86,
-    -.26,
-    0x201a1e
+  const a=i/7*TAU;
+
+  const leaf=new THREE.Mesh(
+    new THREE.SphereGeometry(
+      .13,7,5
+    ),
+    cottageMat(
+      [0x71966f,0x84a77b,0x668d70][i%3],
+      {roughness:1}
+    )
   );
 
+  leaf.scale.set(
+    .7,1.7,.45
+  );
+
+  leaf.position.set(
+    Math.cos(a)*.18,
+    .65+Math.sin(i)*.05,
+    Math.sin(a)*.18
+  );
+
+  leaf.rotation.z=
+    Math.cos(a)*.45;
+
+  plant.add(leaf);
+}
+
+plant.position.set(
+  1.85,F1,.75
+);
+
+f1.add(plant);
+
+
+// ======================================================
+// piano
+// ======================================================
+
+const piano=new THREE.Group();
+
+{
+  const pm=(
+    w,h,d,
+    x,y,z,
+    c,
+    r=.55
+  )=>{
+
+    const m=new THREE.Mesh(
+      new THREE.BoxGeometry(w,h,d),
+      cottageMat(c,{roughness:r})
+    );
+
+    m.position.set(x,y,z);
+
+    m.castShadow=true;
+
+    piano.add(m);
+  };
+
+  pm(
+    1.35,1.2,.42,
+    0,.6,0,
+    0x4e3b43
+  );
+
+  pm(
+    1.42,.08,.48,
+    0,1.24,0,
+    0x684d55
+  );
+
+  pm(
+    1.3,.06,.26,
+    0,.78,-.3,
+    0x4e3b43
+  );
+
+  pm(
+    1.12,.05,.22,
+    0,.82,-.3,
+    0xf6efe4,
+    .7
+  );
+
+  for(let i=0;i<7;i++){
+
+    pm(
+      .05,.04,.12,
+      -.45+i*.15,
+      .86,
+      -.26,
+      0x201a1e
+    );
+  }
 }
 
 piano.position.set(
-  -1.38,
-  F1,
-  1.48
+  -1.4,F1,1.62
 );
 
-f1.add(
-  piano
-);
+f1.add(piano);
 
 
 // 钢琴凳
-
 Cy(
-  .20,
-  .18,
-  .45,
-  -1.38,
-  F1+.23,
-  .78,
+  .2,.18,.45,
+  -1.4,F1+.23,.9,
   0x76503e
 );
 
 
-// ============================================================
-// 28. 厨房
-// ============================================================
+// ======================================================
+// piano decoration
+// ======================================================
 
 A(
-  1.50,
-  .90,
-  .60,
-  .92,
-  .45,
-  1.55,
+  1.0,.75,.08,
+  -1.4,1.82,1.92,
+  0x7b5747
+);
+
+A(
+  .82,.57,.02,
+  -1.4,1.82,1.87,
+  0xf0c9bd,
+  {roughness:1}
+);
+
+
+// ======================================================
+// kitchen
+// ======================================================
+
+A(
+  1.5,.9,.6,
+  .95,.45,1.6,
   0xc9b79c
 );
 
 A(
-  1.55,
-  .06,
-  .64,
-  .92,
-  .93,
-  1.55,
+  1.55,.06,.64,
+  .95,.93,1.6,
   0x7a6a5c
 );
 
-
 // 水槽
-
 A(
-  .48,
-  .04,
-  .35,
-  .55,
-  .97,
-  1.55,
+  .5,.04,.35,
+  .55,.97,1.6,
   0x9fb7c4
 );
 
-
-// 灶台
-
+// 炉灶
 A(
-  .58,
-  .04,
-  .50,
-  1.30,
-  .96,
-  1.55,
+  .6,.04,.5,
+  1.3,.96,1.6,
   0x2a2a2e
 );
 
-for(const x of[1.18,1.42]){
-  for(const z of[1.43,1.67]){
+for(const bx of[-.15,.15]){
+
+  for(const bz of[-.12,.12]){
 
     Cy(
-      .07,
-      .07,
-      .02,
-      x,
+      .08,.08,.02,
+      1.3+bx,
       F1+.99,
-      z,
+      1.6+bz,
       0x555560
     );
-
   }
 }
 
 
 // 冰箱
+A(
+  .7,1.85,.65,
+  2.05,.925,1.55,
+  0xe9eef0,
+  {roughness:.4}
+);
 
 A(
-  .70,
-  1.85,
-  .65,
-  2.02,
-  .93,
-  1.50,
-  0xe9eef0,
-  {roughness:.35}
+  .04,.5,.05,
+  1.7,1.1,1.2,
+  0x999999
 );
 
 
-// ============================================================
-// 29. 餐桌
-// ============================================================
+// 吊柜
+A(
+  1.5,.6,.35,
+  .95,1.9,1.75,
+  0x9a7a5a
+);
+
+
+// ======================================================
+// dining table
+// ======================================================
 
 A(
-  1.00,
-  .07,
-  .68,
-  .55,
-  .75,
-  .15,
+  1.0,.06,.7,
+  .7,.74,.1,
   0x8b6247
 );
 
-for(const x of[-.40,.40]){
-  for(const z of[-.25,.25]){
+for(const lx of[-.42,.42]){
+
+  for(const lz of[-.28,.28]){
 
     A(
-      .06,
-      .72,
-      .06,
-      .55+x,
+      .06,.72,.06,
+      .7+lx,
       .36,
-      .15+z,
+      .1+lz,
       0x6f4b39
     );
-
   }
 }
 
 
-// ============================================================
-// 30. 二楼卧室
-// ============================================================
+// 餐椅
+for(const z of[-.65,.75]){
 
+  A(
+    .4,.05,.4,
+    .7,.45,z,
+    0xc99562
+  );
+
+  A(
+    .4,.5,.05,
+    .7,.7,
+    z+(z<0?-.2:.2),
+    0xc99562
+  );
+}
+
+
+// ======================================================
+// SECOND FLOOR BEDROOM
+// ======================================================
+
+// 床架
 U(
-  1.55,
-  .35,
-  2.00,
-  -1.45,
-  .20,
-  .75,
+  1.5,.35,2.0,
+  -1.5,.2,.85,
   0x76503e
 );
 
+// 床垫
 U(
-  1.45,
-  .20,
-  1.90,
-  -1.45,
-  .47,
-  .75,
-  0xf1e5d2
+  1.4,.2,1.9,
+  -1.5,.47,.85,
+  0xf1e5d2,
+  {roughness:1}
 );
 
+// 粉色被子
 U(
-  1.12,
-  .16,
-  .95,
-  -1.45,
-  .65,
-  .68,
+  1.1,.16,.95,
+  -1.5,.65,.78,
   0xffd8df,
   {roughness:1}
 );
 
+// 枕头
 U(
-  .85,
-  .14,
-  .42,
-  -1.45,
-  .70,
-  1.47,
-  0xffeef2
+  .85,.14,.42,
+  -1.5,.7,1.55,
+  0xffeef2,
+  {roughness:1}
 );
 
+// 床头
 U(
-  1.55,
-  .70,
-  .08,
-  -1.45,
-  .55,
-  1.78,
+  1.55,.7,.08,
+  -1.5,.55,1.86,
   0x76503e
 );
 
 
 // 床头柜
+U(
+  .45,.55,.45,
+  -.35,.27,1.55,
+  0x8b6247
+);
 
 U(
-  .45,
-  .55,
-  .45,
-  -.35,
-  .27,
-  1.45,
-  0x8b6247
+  .12,.05,.12,
+  -.35,.57,1.55,
+  0xffd0a0,
+  {
+    emissive:0xffa94d,
+    emissiveIntensity:.7
+  }
 );
 
 
 // 衣柜
-
 U(
-  .90,
-  2.00,
-  .55,
-  1.85,
-  1.00,
-  1.48,
+  .9,2.0,.55,
+  1.95,1.0,1.6,
   0x9a7a5a
 );
 
 
 // 卧室地毯
-
 U(
-  1.40,
-  .035,
-  1.00,
-  -.35,
-  .02,
-  .20,
-  0xe0b5b0
+  1.4,.03,1.0,
+  -.4,.02,.3,
+  0xe0b5b0,
+  {roughness:1}
 );
 
 
-// ============================================================
-// 31. 二楼书桌
-// ============================================================
-
+// 书桌
 U(
-  1.20,
-  .08,
-  .55,
-  .35,
-  .76,
-  1.55,
+  1.2,.08,.55,
+  .35,.76,1.58,
   0x8b6247
 );
 
 U(
-  .08,
-  .72,
-  .50,
-  -.20,
-  .36,
-  1.55,
+  .08,.72,.5,
+  -.2,.36,1.58,
   0x6f4b39
 );
 
 U(
-  .08,
-  .72,
-  .50,
-  .90,
-  .36,
-  1.55,
+  .08,.72,.5,
+  .9,.36,1.58,
   0x6f4b39
 );
 
 
-// ============================================================
-// 32. 二楼浴室
-// ============================================================
+// 台灯
+U(
+  .2,.25,.2,
+  .35,.9,1.58,
+  0xffc66f,
+  {
+    emissive:0xffa94d,
+    emissiveIntensity:.65
+  }
+);
+
+
+// ======================================================
+// SECOND FLOOR BATHROOM
+// ======================================================
 
 U(
-  1.85,
-  .03,
-  1.45,
-  -1.45,
-  .015,
-  -1.15,
+  1.85,.03,1.45,
+  -1.475,.015,-1.175,
   0xcfe3e6
+);
+
+U(
+  1.85,2.45,.08,
+  -1.475,1.225,-.45,
+  0xe6eef0
+);
+
+U(
+  .08,2.45,.45,
+  -.55,1.225,-1.675,
+  0xe6eef0
+);
+
+U(
+  .08,2.45,.35,
+  -.55,1.225,-.625,
+  0xe6eef0
 );
 
 
 // 浴缸
-
 U(
-  .80,
-  .50,
-  1.15,
-  -1.95,
-  .25,
-  -1.18,
+  .8,.5,1.15,
+  -2.0,.25,-1.2,
   0xf4f7f8,
-  {roughness:.25}
+  {roughness:.3}
 );
 
 U(
-  .65,
-  .02,
-  1.00,
-  -1.95,
-  .51,
-  -1.18,
+  .66,.02,1.0,
+  -2.0,.5,-1.2,
   0x9fd3e6,
-  {roughness:.15}
+  {roughness:.2}
 );
 
 
-// ============================================================
-// 33. 室内灯
-// ============================================================
+// 马桶
+Cy(
+  .2,.16,.35,
+  -1.0,F2+.18,-1.55,
+  0xf4f7f8,
+  f2,
+  {roughness:.3}
+);
+
+U(
+  .4,.4,.18,
+  -1.0,.55,-1.8,
+  0xf4f7f8,
+  {roughness:.3}
+);
+
+
+// 洗手台
+Cy(
+  .1,.12,.7,
+  -1.4,F2+.35,-.7,
+  0xf4f7f8,
+  f2
+);
+
+U(
+  .5,.12,.35,
+  -1.4,.76,-.7,
+  0xf4f7f8,
+  {roughness:.3}
+);
+
+
+// 镜子
+U(
+  .5,.6,.03,
+  -1.4,1.5,-.5,
+  0xcfe8f2,
+  {roughness:.2}
+);
+
+
+// ======================================================
+// interior lighting
+// ======================================================
+
+const deskLamp=new THREE.PointLight(
+  0xffc16c,
+  0,
+  5,
+  2
+);
+
+deskLamp.position.set(
+  .35,F2+1.25,1.58
+);
+
+cottage.add(deskLamp);
+
 
 const interiorWarmLight=new THREE.PointLight(
   0xffc77a,
   0,
-  10,
+  9,
   2
 );
 
 interiorWarmLight.position.set(
-  0,
-  3.0,
-  0
+  0,3.2,0
 );
 
-cottage.add(
-  interiorWarmLight
-);
+cottage.add(interiorWarmLight);
 
 
+// 客厅吊灯
 const ceilingLamp=new THREE.PointLight(
   0xffd18a,
   0,
@@ -1828,49 +1736,53 @@ const ceilingLamp=new THREE.PointLight(
 );
 
 ceilingLamp.position.set(
-  -.3,
-  2.55,
-  -.3
+  -.3,2.55,-.3
 );
 
-cottage.add(
-  ceilingLamp
+cottage.add(ceilingLamp);
+
+
+const ceilingGlow=spr(
+  glowT,
+  0xffd18a,
+  .9,
+  0
 );
 
+scene.remove(ceilingGlow);
 
-// ============================================================
-// 34. 猫窝
-// ============================================================
+ceilingGlow.position.set(
+  -.3,2.5,-.3
+);
+
+cottage.add(ceilingGlow);
+
+
+// ======================================================
+// cat bed
+// ======================================================
 
 const catBed=new THREE.Group();
 
 catBed.position.set(
-  2.15,
-  .10,
-  -3.35
+  2.05,.1,-3.3
 );
 
 const bedBase=new THREE.Mesh(
   new THREE.CylinderGeometry(
-    .65,
-    .72,
-    .18,
-    12
+    .65,.72,.18,12
   ),
   cottageMat(0x9d6872)
 );
 
 bedBase.castShadow=true;
 
-catBed.add(
-  bedBase
-);
+catBed.add(bedBase);
+
 
 const bedCushion=new THREE.Mesh(
   new THREE.SphereGeometry(
-    .52,
-    12,
-    8
+    .52,12,8
   ),
   cottageMat(
     0xe8b8bd,
@@ -1879,58 +1791,44 @@ const bedCushion=new THREE.Mesh(
 );
 
 bedCushion.scale.y=.22;
+
 bedCushion.position.y=.13;
 
-catBed.add(
-  bedCushion
-);
+bedCushion.castShadow=true;
 
-cottage.add(
-  catBed
-);
+catBed.add(bedCushion);
+
+cottage.add(catBed);
 
 
-// ============================================================
-// 35. 加入场景
-// ============================================================
+// ======================================================
+// IMPORTANT:
+// interior must be added BEFORE exterior detection
+// ======================================================
 
-cottage.add(
-  interior
-);
-
-interior.visible=false;
-
-scene.add(
-  cottage
-);
+cottage.add(interior);
 
 
-// ============================================================
-// 36. 外部 / 内部切换
-// ============================================================
+// ======================================================
+// scene
+// ======================================================
 
-const cottageExterior=[];
+const cottageExterior=
+  cottage.children.filter(
+    o=>
+      o!==interior&&
+      o!==catBed&&
+      !o.isLight
+  );
 
-for(const obj of cottage.children){
+scene.add(cottage);
 
-  if(
-    obj!==interior &&
-    obj!==catBed &&
-    !obj.isLight
-  ){
-
-    cottageExterior.push(
-      obj
-    );
-
-  }
-
-}
+let insideCottage=false;
 
 
-// ============================================================
-// 37. 小屋局部坐标
-// ============================================================
+// ======================================================
+// local position
+// ======================================================
 
 function cottageLocal(){
 
@@ -1941,13 +1839,12 @@ function cottageLocal(){
       ch.position.z
     )
   );
-
 }
 
 
-// ============================================================
-// 38. 设置小屋状态
-// ============================================================
+// ======================================================
+// cottage mode
+// ======================================================
 
 function setCottageMode(inside){
 
@@ -1959,9 +1856,7 @@ function setCottageMode(inside){
   f2.visible=false;
 
   cottageExterior.forEach(
-    obj=>{
-      obj.visible=!inside;
-    }
+    o=>o.visible=!inside
   );
 
   interior.visible=inside;
@@ -1971,112 +1866,167 @@ function setCottageMode(inside){
   $('home').textContent=
     inside?'出门':'进屋';
 
+
   interiorWarmLight.intensity=
-    inside ? 1.4 : 0;
+    inside
+    ?
+    .9+1.1*night
+    :
+    0;
+
+  deskLamp.intensity=
+    inside
+    ?
+    .35+.65*night
+    :
+    0;
 
   ceilingLamp.intensity=
-    inside ? 1.0 : 0;
+    inside
+    ?
+    .5+.8*night
+    :
+    0;
 
-  if(typeof toast==='function'){
+  floorLampLight.intensity=
+    inside
+    ?
+    .35+.5*night
+    :
+    0;
 
-    toast(
-      inside
-      ? '欢迎回家。'
-      : '回到小岛上了。'
-    );
 
-  }
-
+  toast(
+    inside
+    ?
+    '欢迎回家。'
+    :
+    '回到小岛上了。'
+  );
 }
 
 
-// ============================================================
-// 39. 进入小屋
-// ============================================================
+// ======================================================
+// enter
+// ======================================================
 
 function enterCottage(){
 
   const p=cottageLocal();
 
-  // 必须在门口附近
-
   if(
-    Math.abs(p.x)>1.65 ||
-    p.z>-1.55 ||
-    p.z<-3.65
+    Math.abs(p.x)>1.65||
+    p.z>-1.65||
+    p.z<-3.45
   ){
 
-    toast('请走到小屋正门附近');
+    toast(
+      '请走到小屋正门附近'
+    );
 
     return;
   }
 
 
-  // 室内入口
-  const insidePos=
-    new THREE.Vector3(
-      0,
-      .55,
-      -1.35
-    );
+  p.set(
+    0,
+    .55,
+    -1.15
+  );
 
-  const worldPos=
-    cottage.localToWorld(
-      insidePos
-    );
+  const w=
+    cottage.localToWorld(p);
 
-
-  // 只在点击“进屋”时改变玩家位置
   ch.position.set(
-    worldPos.x,
-    worldPos.y,
-    worldPos.z
+    w.x,
+    COTTAGE_Y+.43,
+    w.z
   );
 
   setCottageMode(true);
-
 }
 
 
-// ============================================================
-// 40. 出屋
-// ============================================================
+// ======================================================
+// exit
+// ======================================================
 
 function exitCottage(){
 
-  const outsidePos=
-    new THREE.Vector3(
-      0,
-      .48,
-      -3.45
-    );
+  const p=cottageLocal();
 
-  const worldPos=
-    cottage.localToWorld(
-      outsidePos
-    );
+  p.set(
+    0,
+    -.02,
+    -3.15
+  );
 
-  const groundY=
-    H(
-      worldPos.x,
-      worldPos.z
-    );
-
+  const w=
+    cottage.localToWorld(p);
 
   ch.position.set(
-    worldPos.x,
-    groundY+.43,
-    worldPos.z
+    w.x,
+    H(w.x,w.z),
+    w.z
   );
 
   setCottageMode(false);
-
 }
 
 
-// ============================================================
-// 41. 室内按钮
-// ============================================================
+// ======================================================
+// indoor navigation
+// ======================================================
+
+const HL={
+  door:'出门',
+  up:'上楼',
+  down:'下楼',
+  toDoor:'回到门口',
+  toStair:'去楼梯口'
+};
+
+
+const hs=p=>
+  upFloor
+  ?
+  (
+    p.x>.8&&p.z<1.5
+    ?
+    'down'
+    :
+    'toStair'
+  )
+  :
+  (
+    p.x>.9&&p.z<1.0
+    ?
+    'up'
+    :
+    (
+      p.z<-1.35&&
+      Math.abs(p.x)<.9
+      ?
+      'door'
+      :
+      'toDoor'
+    )
+  );
+
+
+const setP=p=>{
+
+  const w=
+    cottage.localToWorld(p);
+
+  ch.position.x=w.x;
+  ch.position.z=w.z;
+};
+
+
+// ======================================================
+// home button
+// ======================================================
 
 $('home').onclick=()=>{
 
@@ -2090,238 +2040,82 @@ $('home').onclick=()=>{
 
   const p=cottageLocal();
 
+  const k=hs(p);
 
-  // 一楼门口
-  if(
-    !upFloor &&
-    p.z<-1.30 &&
-    Math.abs(p.x)<.85
-  ){
+  inBath=false;
+
+
+  if(k==='door'){
 
     exitCottage();
 
-    return;
-  }
-
-
-  // 上楼
-
-  if(
-    !upFloor &&
-    p.x>0.75 &&
-    p.z<1.1
-  ){
+  }else if(k==='up'){
 
     upFloor=true;
 
     f2.visible=true;
 
-    const target=
-      cottage.localToWorld(
-        new THREE.Vector3(
-          1.10,
-          0,
-          1.25
-        )
-      );
-
-    ch.position.set(
-      target.x,
-      COTTAGE_Y+F2,
-      target.z
+    p.set(
+      1.05,
+      0,
+      1.4
     );
 
-    toast('来到二楼。');
+    setP(p);
 
-    return;
-  }
+    tone(
+      523,
+      .3,
+      .06
+    );
 
-
-  // 下楼
-
-  if(
-    upFloor &&
-    p.x>.65 &&
-    p.z<1.4
-  ){
+  }else if(k==='down'){
 
     upFloor=false;
 
     f2.visible=false;
 
-    const target=
-      cottage.localToWorld(
-        new THREE.Vector3(
-          1.10,
-          0,
-          -1.25
-        )
-      );
-
-    ch.position.set(
-      target.x,
-      COTTAGE_Y+F1,
-      target.z
+    p.set(
+      1.1,
+      0,
+      -1.3
     );
 
-    toast('回到一楼。');
+    setP(p);
 
-    return;
-  }
-
-};
-
-
-// ============================================================
-// 42. 室内状态更新
-//
-// 注意：
-// 只有 insideCottage=true 才允许这里改变玩家位置。
-// ============================================================
-
-function updateCottageInterior(){
-
-  if(!insideCottage){
-
-    const p=cottageLocal();
-
-    const near=
-      Math.abs(p.x)<1.65 &&
-      p.z<-1.55 &&
-      p.z>-3.65;
-
-    $('home').style.display=
-      near?'block':'none';
-
-    $('home').textContent='进屋';
-
-    return;
-  }
-
-
-  // ========================================================
-  // 室内状态
-  // ========================================================
-
-  const p=cottageLocal();
-
-
-  // 室内边界
-
-  p.x=cl(
-    p.x,
-    -2.10,
-    2.10
-  );
-
-  p.z=cl(
-    p.z,
-    -1.72,
-    1.72
-  );
-
-
-  // 一楼
-
-  if(!upFloor){
-
-    if(
-      p.x>1.45 &&
-      p.z<.90 &&
-      p.z>-.95
-    ){
-
-      p.x=1.45;
-
-    }
-
-  }
-
-
-  // 二楼
-
-  else{
-
-    if(
-      p.x>1.45 &&
-      p.z<1.20
-    ){
-
-      p.x=1.45;
-
-    }
-
-  }
-
-
-  // 写回玩家位置
-  //
-  // 只有进入小屋以后才执行
-
-  const worldPos=
-    cottage.localToWorld(p);
-
-  ch.position.x=
-    worldPos.x;
-
-  ch.position.z=
-    worldPos.z;
-
-  ch.position.y=
-    COTTAGE_Y+
-    (upFloor?F2:F1);
-
-
-  $('home').style.display='block';
-
-
-  // 当前按钮文字
-
-  if(upFloor){
-
-    if(
-      p.x>.65 &&
-      p.z<1.4
-    ){
-
-      $('home').textContent='下楼';
-
-    }else{
-
-      $('home').textContent='去楼梯口';
-
-    }
+    tone(
+      392,
+      .3,
+      .06
+    );
 
   }else{
 
-    if(
-      p.z<-1.30 &&
-      Math.abs(p.x)<.85
-    ){
+    if(upFloor){
 
-      $('home').textContent='出门';
-
-    }else if(
-      p.x>.75 &&
-      p.z<1.1
-    ){
-
-      $('home').textContent='上楼';
+      p.set(
+        1.05,
+        0,
+        1.4
+      );
 
     }else{
 
-      $('home').textContent='回到门口';
-
+      p.set(
+        0,
+        0,
+        -1.5
+      );
     }
 
+    setP(p);
   }
+};
 
-}
 
-
-// ============================================================
-// 43. 小屋动态
-// ============================================================
+// ======================================================
+// exterior light
+// ======================================================
 
 const cottageLight=new THREE.PointLight(
   0xffb86b,
@@ -2332,164 +2126,316 @@ const cottageLight=new THREE.PointLight(
 
 cottageLight.position.set(
   COTTAGE_X,
-  COTTAGE_Y+1.5,
-  COTTAGE_Z-1.8
+  COTTAGE_Y+1.4,
+  COTTAGE_Z-1.7
 );
 
-scene.add(
-  cottageLight
-);
+scene.add(cottageLight);
 
+
+// ======================================================
+// update cottage
+// ======================================================
 
 function updCottage(){
 
-  // 外部夜间灯
-
   cottageLamp.intensity=
-    1.5*night;
+    1.6*night;
 
   cottageLight.intensity=
-    .65*night;
+    .7*night;
 
   cottageGlow.material.opacity=
-    .10+.90*night;
+    .12+.88*night;
 
 
-  // 室内灯
+  wallLamps.forEach((q)=>{
+
+    if(q.isLight){
+
+      q.intensity=
+        night*.7;
+
+    }else if(q.material){
+
+      q.material.opacity=
+        .15+.85*night;
+    }
+  });
+
 
   interiorWarmLight.intensity=
     insideCottage
-    ? 1.2+1.0*night
-    : 0;
+    ?
+    .9+1.1*night
+    :
+    0;
+
+  deskLamp.intensity=
+    insideCottage
+    ?
+    .35+.65*night
+    :
+    0;
 
   ceilingLamp.intensity=
     insideCottage
-    ? .8+.7*night
-    : 0;
+    ?
+    .5+.8*night
+    :
+    0;
+
+  floorLampLight.intensity=
+    insideCottage
+    ?
+    .35+.5*night
+    :
+    0;
 
 
-  // 烟
-
-  const t=
+  const ts=
     performance.now()/1000;
 
-  smoke.forEach(
-    (s,i)=>{
 
-      const k=
-        (t*.16+i/4)%1;
+  smoke.forEach((q,i)=>{
 
-      s.position.set(
-        1.65+k*.55,
-        7.65+k*2.2,
-        .75
-      );
+    const k=
+      (ts*.16+i/4)%1;
 
-      s.scale.setScalar(
-        .45+k*1.35
-      );
+    q.position.set(
+      1.75+k*.6,
+      7.7+k*2.4,
+      .9
+    );
 
-      if(s.material){
+    q.scale.setScalar(
+      .5+k*1.4
+    );
 
-        s.material.opacity=
-          .5*
-          (1-k)*
-          Math.min(
-            1,
-            k*5
-          );
+    q.material.opacity=
+      .55*
+      (1-k)*
+      Math.min(1,k*5);
+  });
 
-      }
-
-    }
-  );
-
-
-  // 室内逻辑
 
   updateCottageInterior();
-
 }
 
 
-// ============================================================
-// 44. 外部提示
-// ============================================================
+// ======================================================
+// interior update
+// ======================================================
+
+function updateCottageInterior(){
+
+  const p=cottageLocal();
+
+
+  if(!insideCottage){
+
+    const near=
+      Math.abs(p.x)<1.65&&
+      p.z<-1.65&&
+      p.z>-3.45;
+
+    $('home').style.display=
+      near?'block':'none';
+
+    $('home').textContent=
+      '进屋';
+
+  }else{
+
+    // 室内边界
+    p.x=
+      cl(
+        p.x,
+        -2.12,
+        2.12
+      );
+
+    p.z=
+      cl(
+        p.z,
+        -1.72,
+        1.68
+      );
+
+
+    // ==================================================
+    // second floor collision
+    // ==================================================
+
+    if(upFloor){
+
+      if(
+        p.x>1.45&&
+        p.z<1.0
+      ){
+
+        p.x=1.45;
+      }
+
+
+      if(inBath){
+
+        if(p.z>-.5)
+          p.z=-.5;
+
+
+        if(
+          p.x>-.62&&
+          (
+            p.z<-1.4||
+            p.z>-.85
+          )
+        ){
+
+          p.x=-.62;
+        }
+
+
+        if(p.x>-.5){
+
+          inBath=false;
+        }
+
+      }else if(
+        p.x<-.5&&
+        p.z<-.4
+      ){
+
+        if(
+          p.z>-1.4&&
+          p.z<-.85
+        ){
+
+          inBath=true;
+
+        }else if(
+          -.5-p.x<
+          -.4-p.z
+        ){
+
+          p.x=-.5;
+
+        }else{
+
+          p.z=-.4;
+        }
+      }
+
+    }else{
+
+      // =================================================
+      // first floor stairs
+      // =================================================
+
+      if(
+        p.x>1.5&&
+        p.z<.85&&
+        p.z>-1.62
+      ){
+
+        p.x=1.5;
+      }
+    }
+
+
+    const w=
+      cottage.localToWorld(p);
+
+    ch.position.copy(w);
+
+    ch.position.y=
+      COTTAGE_Y+
+      (
+        upFloor
+        ?
+        F2
+        :
+        F1
+      );
+
+
+    $('home').style.display=
+      'block';
+
+
+    const kk=
+      hs(cottageLocal());
+
+    $('home').textContent=
+      HL[kk];
+
+
+    if(kk!==lastHs){
+
+      lastHs=kk;
+
+      if(
+        kk==='up'||
+        kk==='down'
+      ){
+
+        toast(
+          '点右下角的「'+
+          HL[kk]+
+          '」'
+        );
+      }
+    }
+  }
+}
+
+
+// ======================================================
+// outside entrance prompt
+// ======================================================
 
 let cottageToastShown=false;
 
-
 function checkCottage(){
 
-  // 室内不处理外部提示
-
-  if(insideCottage){
-
+  if(insideCottage)
     return;
-  }
 
 
   const p=cottageLocal();
 
+
   const near=
-    Math.abs(p.x)<1.65 &&
-    p.z<-1.55 &&
-    p.z>-3.65;
+    Math.abs(p.x)<1.65&&
+    p.z<-1.65&&
+    p.z>-3.45;
 
 
   $('home').style.display=
     near?'block':'none';
 
-  $('home').textContent='进屋';
+  $('home').textContent=
+    '进屋';
 
 
   if(
-    near &&
+    near&&
     !cottageToastShown
   ){
 
     cottageToastShown=true;
 
     toast(
-      '这是你的小别墅。点击右下角「进屋」进入。'
+      '这是你的海岛小别墅。点击右下方“进屋”按钮进入。'
     );
-
   }
 
 
   if(!near){
 
     cottageToastShown=false;
-
   }
-
 }
-
-
-// ============================================================
-// 45. 初始状态
-// ============================================================
-
-insideCottage=false;
-upFloor=false;
-inBath=false;
-
-interior.visible=false;
-
-cottageExterior.forEach(
-  obj=>{
-    obj.visible=true;
-  }
-);
-
-
-// ============================================================
-// Cottage V3 END
-// ============================================================
-
-
-
- 
 // ---------- memory garden ----------
 const garden = new THREE.Group();
 const GARDEN_X = 5.4, GARDEN_Z = 7.4;
