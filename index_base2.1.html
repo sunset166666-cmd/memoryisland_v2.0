@@ -55,7 +55,7 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.a
 // ---------- terrain ----------
 const RR=24;
 function H0(x,z){const d=Math.hypot(x,z),f=1-(d/RR)**2;return f*2.3-.35+Math.sin(x*.21+2)*Math.cos(z*.18)*.55*Math.max(f,0)+Math.sin(x*.5+1)*Math.cos(z*.4)*.22+Math.sin(x*.9+z*.7)*.1*Math.max(f,0)}
-const MX=66,MZ=80,MR=15,MA=Math.atan2(80,66);
+const MX=66,MZ=80,MR=15,MA=Math.atan2(80,66),UX=MX+Math.cos(MA)*-5-Math.sin(MA)*6.5,UZ=MZ+Math.sin(MA)*-5+Math.cos(MA)*6.5;
 const PLT=[[-5.2,8.2,6.4,1.9],[5.4,7.4,4.4,1.68]];
 function H(x,z){let h=H0(x,z);for(const p of PLT){const d=Math.hypot(x-p[0],z-p[1]);if(d<p[2]+2.6){const f=cl((d-p[2])/2.6),k=f*f*(3-2*f);h=p[3]*(1-k)+h*k}}const q=1-((x-MX)*(x-MX)+(z-MZ)*(z-MZ))/(MR*MR);if(q>-.1){const mh=q*1.9-.35+Math.sin(x*.4)*Math.cos(z*.35)*.16*Math.max(q,0);if(mh>h)h=mh}return h}
 const DEEP=[16,66,92],WET=[168,146,104],SAND=[232,212,164],G1=[104,166,96],G2=[134,184,104];
@@ -174,7 +174,7 @@ function noiseHit(buf,freq,type,vol,dur,q){const s=AC.createBufferSource(),f=AC.
  s.buffer=buf;f.type=type;f.frequency.value=freq;if(q)f.Q.value=q;g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
  s.connect(f);f.connect(g);g.connect(master);s.start(t0,Math.random()*2,dur+.05)}
 const PENT=[261.6,293.7,329.6,392,440,523.3,587.3,659.3,784],CH=[[130.8,196,261.6,329.6],[110,164.8,220,277.2],[174.6,261.6,349.2,440],[196,293.7,392,493.9]];let mi=4;
-function music(){if(!AC||!sndOn)return;mi=cl(mi+Math.floor(Math.random()*5)-2,0,8);const f=PENT[mi]*(night>.5?.5:1);
+function music(){if(!AC||!sndOn||onUfo)return;mi=cl(mi+Math.floor(Math.random()*5)-2,0,8);const f=PENT[mi]*(night>.5?.5:1);
  tone(f,3.2,.045+.02*night,'sine',musicBus);tone(f*2.01,1.6,.012,'sine',musicBus);if(Math.random()<.35)tone(PENT[(mi+2)%9],3,.03,'triangle',musicBus,.4)}
 function pad(){if(!AC||!sndOn)return;pi=(pi+1)%4;CH[pi].forEach(f=>{const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime;o.frequency.value=f;
  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.02+.01*night,t0+4);g.gain.linearRampToValueAtTime(0,t0+13);o.connect(g);g.connect(musicBus);o.start(t0);o.stop(t0+13.2)})}
@@ -713,7 +713,7 @@ function updCat(dt,tm){
 let bl='';const _bw=new V3();
 function updWorld(dt,tm){
  const by=wv(boat.position.x,boat.position.z,tm)+.05;boat.position.y=by;boat.rotation.z=Math.sin(tm*1.3)*.05;boat.rotation.x=Math.sin(tm*1.1+1)*.04;
- if(onBoat){ch.position.set(boat.position.x,by-.3,boat.position.z);ch.rotation.y=boat.rotation.y}else if(!insideCottage) ch.position.y=Hd(ch.position.x,ch.position.z);
+ if(onBoat){ch.position.set(boat.position.x,by-.3,boat.position.z);ch.rotation.y=boat.rotation.y}else if(!insideCottage&&!onUfo&&!sitting) ch.position.y=Hd(ch.position.x,ch.position.z);
  updCat(dt,tm);catExtra(tm);updCottage();checkCottage();updGarden();gT.value=tm;bG.material.opacity=night*.9;lampG.forEach(q=>q.material.opacity=night*.85);
  const near=Math.hypot(ch.position.x-boat.position.x,ch.position.z-boat.position.z)<3.6,l=onBoat?'下船':near?'上船':'';
  if(l!==bl){bl=l;$('board').style.display=l?'block':'none';$('board').textContent=l}
@@ -828,7 +828,7 @@ function extraTick(dt,tm){seasonTick(dt,tm);soundTick();moonTick(dt,tm);
   pG.attributes.position.needsUpdate=true}
  for(let i=hearts.length-1;i>=0;i--){const q=hearts[i];q.userData.a+=dt;q.position.y+=dt*.8;q.material.opacity=cl(1-q.userData.a/1.4);if(q.userData.a>1.4){scene.remove(q);q.material.dispose();hearts.splice(i,1)}}
  const cf=canFish();fb.style.display=cf?'block':'none';if(!cf&&fs)fReset();
- const p=ch.position;for(let i=shells.length-1;i>=0;i--){const q=shells[i];if(Math.hypot(q.position.x-p.x,q.position.z-p.z)<1.1){scene.remove(q);shells.splice(i,1);X.shell=(X.shell||0)+1;svx();updBag();toast('捡到一枚贝壳。');tone(1046,.4,.07)}}}
+ const p=ch.position;for(let i=shells.length-1;i>=0;i--){const q=shells[i];if(!onUfo&&Math.hypot(q.position.x-p.x,q.position.z-p.z)<1.1){scene.remove(q);shells.splice(i,1);X.shell=(X.shell||0)+1;svx();updBag();toast('捡到一枚贝壳。');tone(1046,.4,.07)}}}
 updBag();
 
 // ---------- seasons & weather sound ----------
@@ -881,27 +881,10 @@ const moT=new THREE.Mesh(moG,new THREE.MeshStandardMaterial({vertexColors:true,r
   const sp2=spr(glowT,c,1.8,0);scene.remove(sp2);sp2.position.y=1.12;g.add(sp2);scene.add(g);mLamp.push([om,sp2])}}
 // 月光长椅
 const[bX,bZ]=MP(11,0),bTh=Math.atan2(Math.cos(MA),Math.sin(MA));
-{
- const g=new THREE.Group(),w=mat([240,226,236]);
- g.position.set(bX,H(bX,bZ),bZ);
- g.rotation.y=bTh;
-
- const a=(geo,y,z)=>{
-   const m=new THREE.Mesh(geo,w);
-   m.position.set(0,y,z);
-   m.castShadow=true;
-   g.add(m);
-   return m;
- };
-
- a(new THREE.BoxGeometry(1.8,.08,.5),.5,0);
- a(new THREE.BoxGeometry(1.8,.5,.07),.8,-.25);
-
- for(const x of[-.8,.8])
-   a(new THREE.BoxGeometry(.07,.5,.45),.25,0).position.x=x;
-
- scene.add(g);
-}
+{const g=new THREE.Group(),w=mat([240,226,236]);g.position.set(bX,H(bX,bZ),bZ);g.rotation.y=bTh;
+ const a=(geo,y,z)=>{const m=new THREE.Mesh(geo,w);m.position.set(0,y,z);m.castShadow=true;g.add(m);return m};
+ a(new THREE.BoxGeometry(1.8,.08,.5),.5,0);a(new THREE.BoxGeometry(1.8,.5,.07),.8,-.25);
+ for(const x of[-.8,.8])a(new THREE.BoxGeometry(.07,.5,.45),.25,0).position.x=x;scene.add(g)}
 // 三角钢琴
 const[pX,pZ]=MP(5.5,4.5);
 {const g=new THREE.Group(),bk=mat([26,24,38],{roughness:.2,metalness:.3}),pS=f=>{const sh=new THREE.Shape();sh.moveTo(-.75,f);sh.lineTo(.75,f);sh.lineTo(.75,-.3);sh.bezierCurveTo(.75,-.9,.35,-1.5,-.2,-1.5);sh.lineTo(-.75,-1.5);sh.lineTo(-.75,f);return sh},
@@ -916,7 +899,7 @@ const[pX,pZ]=MP(5.5,4.5);
 const FN=460,fS=new THREE.InstancedMesh(new THREE.CylinderGeometry(.012,.018,1,4).translate(0,.5,0),mat([126,168,138]),FN),fH=new THREE.InstancedMesh(new THREE.SphereGeometry(.075,6,5),mat([255,255,255],{roughness:.6}),FN),fd=[],fO=new THREE.Object3D();
 {const pal=[0xff9ccf,0xffc2dc,0xd9b3ff,0xb9a3ff,0xffffff],tr=MP(-1,-4.8);let n=0;
  for(let k=0;n<FN&&k<6000;k++){const u=(Math.random()*2-1)*10,v=(Math.random()*2-1)*10,[x,z]=MP(u,v),h=H(x,z);
-  if(h<.4||u*u+v*v>100||(Math.abs(v)<1.4&&u<10.5)||Math.hypot(x-tr[0],z-tr[1])<1.6||Math.hypot(x-pX,z-pZ)<3.3||Math.hypot(x-bX,z-bZ)<2.6)continue;
+  if(h<.4||u*u+v*v>100||(Math.abs(v)<1.4&&u<10.5)||Math.hypot(x-tr[0],z-tr[1])<1.6||Math.hypot(x-pX,z-pZ)<3.3||Math.hypot(x-bX,z-bZ)<2.6||Math.hypot(x-UX,z-UZ)<2.8)continue;
   fd.push([x,h,z,.3+Math.random()*.22]);fH.setColorAt(n,new THREE.Color(pal[n%5]));n++}
  fd.length=n}
 fS.frustumCulled=fH.frustumCulled=false;scene.add(fS,fH);
@@ -951,19 +934,65 @@ function pBuild(){const kb=$('pkb');kb.innerHTML='';pKeys={};const base=12*(pOct
  ['关闭',b=>closePiano()]].forEach(([n,f])=>{const b=document.createElement('button');b.textContent=n;b.style.cssText='padding:6px 12px;font-size:13px';b.onclick=()=>f(b);$('pbar').appendChild(b)});
 function openPiano(){if(!sndOn)$('snd').click();initAudio();playOpen=modal=true;pnl.style.display='block';pBuild();ch.rotation.y=Math.atan2(Math.cos(MA),Math.sin(MA))}
 function closePiano(){playOpen=modal=false;pnl.style.display='none';pTm.forEach(clearTimeout);Object.keys(voices).forEach(m=>pnOff(+m,true,true));if(pRec){pRec=false}}
-mb.onclick=()=>{if(sitting)stand();else if(Math.hypot(ch.position.x-bX,ch.position.z-bZ)<2.4){sitting=true;ch.position.x=bX;ch.position.z=bZ;sit()}else openPiano()};
-function moonTick(dt,tm){const p=ch.position,dM=Math.hypot(p.x-MX,p.z-MZ),nb=Math.hypot(p.x-bX,p.z-bZ)<2.4,np=Math.hypot(p.x-pX,p.z-pZ)<3.3;
+mb.onclick=()=>{if(onUfo||(!sitting&&Math.hypot(ch.position.x-UX,ch.position.z-UZ)<2.6)){ufoGo(!onUfo);return}if(sitting)stand();else if(Math.hypot(ch.position.x-bX,ch.position.z-bZ)<2.4){sitting=true;ch.position.x=bX;ch.position.z=bZ;sit()}else openPiano()};
+function moonTick(dt,tm){ufoTick(tm);const p=ch.position,dM=Math.hypot(p.x-MX,p.z-MZ),nb=Math.hypot(p.x-bX,p.z-bZ)<2.4,np=Math.hypot(p.x-pX,p.z-pZ)<3.3;
  mGlow.forEach(([m,k])=>m.emissiveIntensity=night*k);mSpr.forEach(([q,k])=>q.material.opacity=night*k);mLamp.forEach(([m,q])=>{m.emissiveIntensity=night*1.2;q.material.opacity=night*.75});
  if(dM<17&&!wasM)toast('月光岛。');wasM=dM<17;
  if(sitting){p.set(bX,H(bX,bZ)+.5,bZ);ch.rotation.y=bTh}
- mb.style.display=(!modal&&!onBoat&&!insideCottage&&(sitting||nb||np))?'block':'none';mb.textContent=sitting?'起身':nb?'坐下':'弹琴';
+ const nu=!onUfo&&Math.hypot(p.x-UX,p.z-UZ)<2.6;mb.style.display=(!modal&&!uBusy&&!onBoat&&!insideCottage&&(onUfo||sitting||nb||np||nu))?'block':'none';mb.textContent=onUfo?'传送下去':sitting?'起身':nb?'坐下':nu?'传送上去':'弹琴';
  if(AC&&master){if(!mwG)mwG=loopNoise(noiseB,'lowpass',420);mwG.gain.setTargetAtTime(dM<24?(sitting?.2:.07)*(.6+.4*Math.sin(tm*.7)):0,AC.currentTime,.5)}
  if(dM<26){for(let i=0;i<GN;i++){gP[i*3+1]=wave(gP[i*3],gP[i*3+2],tm)+.08;const b=Math.max(0,Math.sin(tm*(2+i%5)+i*1.7))*night;gC[i*3]=b;gC[i*3+1]=b*.92;gC[i*3+2]=b}gG.attributes.position.needsUpdate=gG.attributes.color.needsUpdate=true;
-  const sw=dM<22;for(let i=0;i<fd.length;i++){const f=fd[i];let tx=Math.sin(tm*1.3+i*.7)*.07,tz=Math.cos(tm*1.1+i*.9)*.07;
+  const sw=dM<22&&!onUfo;for(let i=0;i<fd.length;i++){const f=fd[i];let tx=Math.sin(tm*1.3+i*.7)*.07,tz=Math.cos(tm*1.1+i*.9)*.07;
    if(sw){const dx=f[0]-p.x,dz=f[2]-p.z,d=Math.hypot(dx,dz);if(d<2.2){const k=(1-d/2.2)*.9/(d||1);tx+=dx*k;tz+=dz*k}}
    fO.position.set(f[0],f[1],f[2]);fO.rotation.set(tz,0,-tx);fO.scale.set(1,f[3],1);fO.updateMatrix();fS.setMatrixAt(i,fO.matrix);
    fO.position.set(f[0]+tx*f[3],f[1]+f[3]*(1-.5*(tx*tx+tz*tz)),f[2]+tz*f[3]);fO.rotation.set(0,0,0);fO.scale.set(1,.6,1);fO.updateMatrix();fH.setMatrixAt(i,fO.matrix)}
   fS.instanceMatrix.needsUpdate=fH.instanceMatrix.needsUpdate=true}}
+
+// ---------- 飞碟观景台 ----------
+const UY=16,ufo=new THREE.Group(),orbs=[],gy=H(UX,UZ);let onUfo=false,uBusy=false;
+const uMetal=new THREE.MeshStandardMaterial({color:0xb4bde0,metalness:.75,roughness:.28,side:THREE.DoubleSide});
+const gridTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,128,128);x.strokeStyle='#8fb0ff';x.lineWidth=3;x.strokeRect(2,2,124,124);x.beginPath();x.moveTo(64,0);x.lineTo(64,128);x.moveTo(0,64);x.lineTo(128,64);x.stroke();return new THREE.CanvasTexture(c)})();
+const em=(c,i)=>new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:i,roughness:.4});
+const hull=new THREE.Mesh(new THREE.LatheGeometry([[0,-.95],[1.4,-.9],[3.2,-.55],[5.2,-.1],[6.3,.12],[6.2,.3],[5.4,.42],[0,.45]].map(p=>new THREE.Vector2(p[0],p[1])),48),uMetal);hull.castShadow=true;ufo.add(hull);
+const deck=new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.4,.1,48),new THREE.MeshStandardMaterial({color:0x1a1f44,emissive:0x3c5cff,emissiveMap:gridTex,emissiveIntensity:.9,roughness:.5,metalness:.4}));deck.position.y=.5;deck.receiveShadow=true;ufo.add(deck);
+const rim=new THREE.Mesh(new THREE.TorusGeometry(5.5,.1,8,64),em(0x9fb4ff,1));rim.rotation.x=Math.PI/2;rim.position.y=.6;ufo.add(rim);
+for(let i=0;i<16;i++){const a=i/16*TAU,m=em(0xffffff,1.4),o=new THREE.Mesh(new THREE.SphereGeometry(.13,8,6),m);o.position.set(Math.cos(a)*5.5,.78,Math.sin(a)*5.5);ufo.add(o);orbs.push(m)}
+const rail=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.5,.7,48,1,true),new THREE.MeshBasicMaterial({color:0x9fb4ff,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide}));rail.position.y=.95;ufo.add(rail);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(3.2,.14,8,48),em(0x66e0ff,1.3));ring.rotation.x=Math.PI/2;ring.position.y=-.82;ufo.add(ring);
+const emit=new THREE.Mesh(new THREE.CylinderGeometry(1,.8,.15,24),em(0xb7a6ff,1.5));emit.position.y=-1;ufo.add(emit);
+const pil=new THREE.Mesh(new THREE.CylinderGeometry(.5,.7,.9,16),uMetal);pil.position.y=1;ufo.add(pil);
+const cry=new THREE.Mesh(new THREE.OctahedronGeometry(.7),em(0xa88bff,1.6));cry.position.y=1.9;ufo.add(cry);
+const r1=new THREE.Mesh(new THREE.TorusGeometry(1.3,.03,6,40),em(0xffc2ef,1.4)),r2=new THREE.Mesh(new THREE.TorusGeometry(1.7,.03,6,40),em(0x8fe3ff,1.4));r1.position.y=r2.position.y=1.9;ufo.add(r1,r2);
+const halo=spr(glowT,0x9a7bff,7,.55);scene.remove(halo);halo.position.y=1.9;ufo.add(halo);
+ufo.position.set(UX,UY,UZ);scene.add(ufo);
+const hb=UY-1-gy,beamM=new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}),
+ beam=new THREE.Mesh(new THREE.CylinderGeometry(.7,2.6,hb,24,1,true),beamM);beam.position.set(UX,gy+hb/2,UZ);scene.add(beam);
+const padM=new THREE.MeshBasicMaterial({color:0xcdb8ff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const uPad=new THREE.Mesh(new THREE.RingGeometry(1.5,2.1,40),padM);uPad.rotation.x=-Math.PI/2;uPad.position.set(UX,gy+.05,UZ);scene.add(uPad);
+const uPad2=new THREE.Mesh(new THREE.CircleGeometry(1.5,32),new THREE.MeshBasicMaterial({color:0x8fb0ff,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false}));uPad2.rotation.x=-Math.PI/2;uPad2.position.set(UX,gy+.05,UZ);scene.add(uPad2);
+function ufoTick(tm){const by=UY+Math.sin(tm*.8)*.35;ufo.position.y=by;ring.rotation.z=tm*.5;cry.rotation.y=tm*.7;cry.position.y=1.9+Math.sin(tm*1.3)*.15;r1.rotation.x=tm*.9;r2.rotation.z=tm*1.1;
+ orbs.forEach((m,i)=>m.emissive.setHSL((tm*.08+i/16)%1,.8,.6));beamM.opacity=.14+.06*Math.sin(tm*2);padM.opacity=.45+.25*Math.sin(tm*2.2);if(onUfo)ch.position.y=by+.55}
+// 传送
+const fx=document.createElement('div');fx.style.cssText='position:fixed;inset:0;z-index:40;background:radial-gradient(circle,#fff,#b9a6ff 60%,#4a6bff);opacity:0;pointer-events:none;transition:opacity .45s';document.body.appendChild(fx);
+function whoosh(){if(!AC||!master)return;const T=AC.currentTime,o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();o.type='sawtooth';f.type='lowpass';f.frequency.setValueAtTime(200,T);f.frequency.exponentialRampToValueAtTime(3500,T+.5);f.frequency.exponentialRampToValueAtTime(300,T+1.2);
+ o.frequency.setValueAtTime(110,T);o.frequency.exponentialRampToValueAtTime(660,T+.6);g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.12,T+.4);g.gain.linearRampToValueAtTime(0,T+1.2);o.connect(f);f.connect(g);g.connect(master);o.start(T);o.stop(T+1.3)}
+function ufoGo(up){if(uBusy)return;uBusy=true;whoosh();fx.style.opacity=1;
+ setTimeout(()=>{if(up){onUfo=true;sitting=false;bod.scale.y=1;ch.position.set(UX,UY+.55,UZ-3);ch.rotation.y=Math.PI;ufoMusic(true);toast('你悬在月光岛的上空。')}
+  else{onUfo=false;ufoMusic(false);const gx=UX+Math.cos(MA)*3.4,gz=UZ+Math.sin(MA)*3.4;ch.position.set(gx,H(gx,gz),gz)}
+  fx.style.opacity=0;setTimeout(()=>uBusy=false,500)},550)}
+// 玄幻星际 BGM
+let ub,uD,uTm,uNodes=[];
+function ufT(f,dur,v,ty,T,send){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(v,T+.01);g.gain.exponentialRampToValueAtTime(.0008,T+dur);o.connect(g);g.connect(ub);if(send)g.connect(uD);o.start(T);o.stop(T+dur+.1)}
+function ufoMusic(on){if(!AC||!master)return;const T=AC.currentTime;
+ if(!on){if(!ub)return;const b=ub,nn=uNodes;ub=null;clearInterval(uTm);b.gain.cancelScheduledValues(T);b.gain.setValueAtTime(b.gain.value,T);b.gain.linearRampToValueAtTime(0,T+1.5);setTimeout(()=>{nn.forEach(o=>{try{o.stop()}catch(e){}});b.disconnect()},1800);uNodes=[];return}
+ if(ub)return;ub=AC.createGain();ub.gain.setValueAtTime(0,T);ub.gain.linearRampToValueAtTime(.6,T+2.5);ub.connect(master);
+ uD=AC.createDelay(1);uD.delayTime.value=.42;const fb=AC.createGain(),lp=AC.createBiquadFilter();fb.gain.value=.55;lp.type='lowpass';lp.frequency.value=2400;uD.connect(lp);lp.connect(fb);fb.connect(uD);lp.connect(ub);
+ [[55,'sawtooth',.05],[55.4,'sawtooth',.05],[110.2,'sine',.08]].forEach(([f,ty,v])=>{const o=AC.createOscillator(),g=AC.createGain(),l=AC.createBiquadFilter();o.type=ty;o.frequency.value=f;l.type='lowpass';l.frequency.value=260;g.gain.value=v;o.connect(l);l.connect(g);g.connect(ub);o.start();uNodes.push(o)});
+ [146.83,220,329.63,369.99,440].forEach((f,i)=>[-6,6].forEach(dc=>{const o=AC.createOscillator(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();o.type='triangle';o.frequency.value=f;o.detune.value=dc;g.gain.value=.03;l.frequency.value=.09+i*.023;lg.gain.value=.022;l.connect(lg);lg.connect(g.gain);o.connect(g);g.connect(ub);g.connect(uD);o.start();l.start();uNodes.push(o,l)}));
+ const SC=[587.33,659.25,739.99,880,987.77,1174.66,1318.5,1479.98];
+ uTm=setInterval(()=>{if(!ub)return;const t=AC.currentTime,r=Math.random();ufT(SC[Math.floor(Math.random()*8)],1.6,.05,'sine',t,true);
+  if(r<.18)ufT(SC[Math.floor(Math.random()*4)]/2,3.5,.07,'triangle',t,true);
+  if(r>.9){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(2400,t);o.frequency.exponentialRampToValueAtTime(500,t+1.2);g.gain.setValueAtTime(.02,t);g.gain.linearRampToValueAtTime(0,t+1.2);o.connect(g);g.connect(uD);o.start(t);o.stop(t+1.3)}},430)}
 toast('坐船沿着码头的方向一直开，夜里能看到远处的月光岛。');
 
 // ---------- loop ----------
@@ -975,12 +1004,12 @@ function tickFrame(now){
  let ix=jx+((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),iy=jy+((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0);
  const m=Math.hypot(ix,iy);if(m>1){ix/=m;iy/=m}
  if(sitting&&m>.3)stand();if(m>.08&&!modal&&!sitting){const vx=-Math.sin(yaw)*(-iy)+Math.cos(yaw)*ix,vz=-Math.cos(yaw)*(-iy)-Math.sin(yaw)*ix,s=(onBoat?4.2:3.4)*dt,p=onBoat?boat.position:ch.position;
-  const ok=(x,z)=>onBoat?(H(x,z)<-.1&&Math.hypot(x,z)<140):insideCottage?true:Hd(x,z)>.08&&!inCot(x,z);
+  const ok=(x,z)=>onBoat?(H(x,z)<-.1&&Math.hypot(x,z)<140):insideCottage?true:onUfo?Math.hypot(x-UX,z-UZ)<5.2:Hd(x,z)>.08&&!inCot(x,z);
   if(ok(p.x+vx*s,p.z+vz*s)){p.x+=vx*s;p.z+=vz*s}else if(ok(p.x+vx*s,p.z)){p.x+=vx*s}else if(ok(p.x,p.z+vz*s)){p.z+=vz*s}
   const rt=onBoat?boat:ch;let d=Math.atan2(vx,vz)-rt.rotation.y;d=Math.atan2(Math.sin(d),Math.cos(d));rt.rotation.y+=d*Math.min(1,dt*(onBoat?4:10));
   bod.position.y=onBoat?0:Math.abs(Math.sin(tm*9))*.07*m;stepT+=dt;if(stepT>(onBoat?.9:.34)){stepT=0;step()}}else bod.position.y*=.8;
  updWorld(dt,tm);
- const D=insideCottage?5.2:10.2,tg=ch.position,pe=insideCottage?Math.max(pitch,.3):pitch,cp_=Math.cos(pe),want=new V3(tg.x+Math.sin(yaw)*cp_*D,0,tg.z+Math.cos(yaw)*cp_*D);want.y=insideCottage?tg.y+1.6+Math.sin(pe)*D:Math.max(tg.y+1.2+Math.sin(pitch)*D,Math.max(H(want.x,want.z),0)+.6);
+ const D=insideCottage?5.2:onUfo?13:10.2,tg=ch.position,pe=insideCottage?Math.max(pitch,.3):pitch,cp_=Math.cos(pe),want=new V3(tg.x+Math.sin(yaw)*cp_*D,0,tg.z+Math.cos(yaw)*cp_*D);want.y=insideCottage?tg.y+1.6+Math.sin(pe)*D:Math.max(tg.y+1.2+Math.sin(pitch)*D,Math.max(H(want.x,want.z),0)+.6);
  camera.position.lerp(want,1-Math.exp(-dt*6));camera.lookAt(tg.x,tg.y+1+Math.max(0,-pe)*14,tg.z);
  env();
  for(let i=0;i<sp.count;i++){const x=bx[i],z=bz[i],y=wave(x,z,tm),f=Math.max(0,y-.2)*3+sm[i]*(.55+.45*Math.sin(tm*1.6-Math.hypot(x,z)*.7));
