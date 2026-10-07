@@ -485,6 +485,7 @@ function updateCottageInterior(){
  }
 }
 
+
 // 小屋不会挡住玩家，但会在屋门附近给出提示
 let cottageToastShown=false;
 function checkCottage() {
@@ -499,6 +500,8 @@ function checkCottage() {
  }
  if(!near)cottageToastShown=false;
 }
+
+
 
 // ---------- memory garden ----------
 const garden = new THREE.Group();
